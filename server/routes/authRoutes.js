@@ -22,52 +22,87 @@ router.post('/signup', async (req, res) => {
     await user.save();
 
     // ✅ Link assigned tasks to this user
-    await Task.updateMany(
-      { 'assigned_to.email': email },
-      { $set: { user_id: user._id } }
-   );
-   
+    await Task.updateMany({ 'assigned_to.email': email }, { $set: { user_id: user._id } });
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
-    });
+    // ✅ Fetch assigned tasks
+    const tasks = await Task.find({ 'assigned_to.email': email });
+    const projectIds = tasks.map(task => task.project_id);
 
-    res.status(201).json({ token });
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    res.status(201).json({ token, projectIds }); // ✅ Return projectIds
   } catch (error) {
     console.error('Signup error:', error.message);
     res.status(500).json({ message: 'Error registering user', error: error.message });
   }
 });
 
+
 // Login route
+
+
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
+  console.log("Received login request for:", email);
 
   try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ msg: 'Invalid credentials' });
+    if (!email || !password) {
+      return res.status(400).json({ msg: "Email and password are required" });
     }
 
+    // Convert email to lowercase
+    const emailLower = email.toLowerCase();
+
+    // Check if user exists
+    let user = await User.findOne({ email: emailLower });
+    console.log("User found:", user);
+
+    if (!user) {
+      console.log("User not found, checking assigned tasks...");
+      const tasks = await Task.find({ 'assigned_to.email': emailLower });
+
+      if (tasks.length > 0) {
+        console.log("User has assigned tasks, auto-creating user...");
+        const hashedPassword = await bcrypt.hash("defaultpassword", 10);
+
+        user = new User({
+          name: tasks[0].assigned_to.name, // Use name from task
+          email: emailLower,
+          password: hashedPassword, // Save hashed password
+        });
+
+        await user.save();
+      } else {
+        return res.status(400).json({ msg: "Invalid credentials" });
+      }
+    }
+
+    // Compare the entered password with stored hashed password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ msg: 'Invalid credentials' });
+      console.log("Password mismatch");
+      return res.status(400).json({ msg: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '1h',
-    });
+    // Generate JWT Token
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
-    // Check if the user is assigned to any task
-    const tasks = await Task.find({ 'assigned_to.email': email });
+    // Fetch assigned projects
+    const tasks = await Task.find({ 'assigned_to.email': emailLower });
     const projectIds = tasks.map(task => task.project_id);
+    console.log("User authenticated. Redirecting to project:", projectIds[0]);
 
     res.json({ token, projectIds });
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ msg: 'Server error' });
+    console.error("Login error:", error);
+    res.status(500).json({ msg: "Server error" });
   }
 });
+
+
+
+
 
 router.get('/user', authMiddleware, async (req, res) => {
   try {

@@ -13,21 +13,28 @@ const Signup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     try {
       const response = await axios.post('http://localhost:8001/signup', {
         name,
         email,
         password,
       });
-
+  
       localStorage.setItem('token', response.data.token);
-      navigate('/dashboard');
+  
+      // ✅ Check if user has assigned tasks and navigate accordingly
+      if (response.data.projectIds.length > 0) {
+        navigate(`/projects/${response.data.projectIds[0]}`);
+      } else {
+        navigate('/dashboard'); // Default navigation if no task assigned
+      }
     } catch (err) {
       console.error('Signup error:', err.response?.data?.message);
       setError(err.response?.data?.message || 'Something went wrong.');
     }
   };
+  
 
   return (
     <div className="flex justify-center items-center h-screen bg-gray-100">

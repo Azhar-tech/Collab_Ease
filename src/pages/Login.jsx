@@ -22,14 +22,11 @@ const Login = () => {
       localStorage.setItem('token', token);
   
       if (projectIds.length > 0) {
-        // If user is assigned to a project, navigate to ProjectDetails
-        navigate(`/project/${projectIds[0]}`);
+        navigate(`/projects/${projectIds[0]}`);
       } else {
-        // Otherwise, navigate to the dashboard
         navigate('/dashboard');
       }
     } catch (err) {
-      console.error('Login error:', err.response?.data?.msg);
       setError(err.response?.data?.msg || 'Something went wrong.');
     }
   };

@@ -1,8 +1,10 @@
 const mongoose = require('mongoose');
+
 const ProjectSchema = new mongoose.Schema({
   project_name: { type: String, required: true },
   project_description: { type: String, required: true },
-  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Owner
+  assignedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // Users who can view the project
   tasks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
