@@ -80,7 +80,6 @@ router.get("/:id", authMiddleware, async (req, res) => {
       return res.status(403).json({ message: "You do not have access to this project" });
     }
 
-    // Format dates for the response
     const formattedProject = {
       ...project.toObject(),
       project_start: project.project_start.toISOString(),

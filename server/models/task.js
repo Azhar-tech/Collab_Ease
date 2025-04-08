@@ -7,15 +7,32 @@ const TaskSchema = new Schema({
   task_start_date: { type: Date, required: true },
   task_end_date: { type: Date, required: true },
   
-  assigned_to: { 
-    name: { type: String, required: true },
-    email: { type: String, required: true },
-  }, // Allow assigned_to to store name and email
+  status: {
+    type: String,
+    enum: ["Pending", "In Progress", "Review", "Completed"],
+    default: "Pending",
+  },
+
+  assigned_to: {
+    name: { type: String },
+    email: { type: String },
+  }, // Filled when a task is assigned
 
   project_id: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
-  
+
+  comments: [
+    {
+      text: { type: String, required: true },
+      created_at: { type: Date, default: Date.now },
+    },
+  ],
+
+  file: { type: String }, // Add a field to store the file path
+
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
+  comment: { type: String }, // Ensure comment field is defined
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 });
 
 module.exports = mongoose.model('Task', TaskSchema);

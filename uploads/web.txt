@@ -1,0 +1,30 @@
+pages/Main-page.jsx
+export const mainpage = ({todo,nameofapp,setTodos})=>{
+const handledelete=(id)=>{
+const upadateTodos=todo.filter((item)=>{
+return item.id!==id
+)
+}
+setTodos(updateTodos)
+}
+const changestatus=(id)=>{
+const updateTodos = todo.filter((item)=>{
+if(item.id==id){
+item.status=!item.status}
+return item
+})
+setTodos(updataTodos)
+}
+
+return(
+<div>
+<h1>your todos app {nameofApp}</div>
+{
+item.map((todoitem,index)=>{
+return(
+<div>ID: {todoitem.id}</div>
+<div>title: {todoitem.title}</div>
+<div>status: {todoitem.status ? "completed": "pending"}</div>
+<button onClick(()=>{handledelete(todoitem.id)}>Delete TODO</button>
+<button onClick(()=>{ changestatus(todoitem.id)>change status t0:{todoitem.status? "pending":"COmpleted"}
+

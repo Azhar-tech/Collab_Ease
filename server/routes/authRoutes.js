@@ -4,7 +4,10 @@ const User = require('../models/user');
 const Task = require('../models/task'); // Import the Task model
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const authMiddleware = require('../middleware/authMiddleware'); // Import the middleware
+const authMiddleware = require('../middleware/authMiddleware');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+ // Import the middleware
 
 // Signup route
 router.post('/signup', async (req, res) => {
@@ -37,6 +40,77 @@ router.post('/signup', async (req, res) => {
   }
 });
 
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Generate a token
+    const token = crypto.randomBytes(20).toString('hex');
+
+    // Set reset token and expiration
+    user.resetToken = token;
+    user.resetTokenExpiry = Date.now() + 3600000; // 1 hour
+    await user.save();
+
+    // Send email (example using Gmail)
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER, // Your Gmail address
+        pass: process.env.GMAIL_PASS, // App password
+      },
+    });
+
+    const resetLink = `http://localhost:5173/reset-password/${token}`;
+
+    await transporter.sendMail({
+      to: user.email,
+      subject: 'Password Reset',
+      html: `<p>You requested a password reset</p>
+             <p>Click <a href="${resetLink}">here</a> to reset your password</p>`,
+    });
+
+    res.json({ message: 'Reset email sent' });
+  } catch (err) {
+    console.error('Error sending reset email:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+})
+  // Reset password route
+router.post('/reset-password/:token', async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpiry: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    user.resetToken = undefined;
+    user.resetTokenExpiry = undefined;
+
+    await user.save();
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (err) {
+    console.error('Error resetting password:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 
 // Login route
 
@@ -68,6 +142,7 @@ router.post('/login', async (req, res) => {
         user = new User({
           name: tasks[0].assigned_to.name, // Use name from task
           email: emailLower,
+          role: role,
           password: hashedPassword, // Save hashed password
         });
 
