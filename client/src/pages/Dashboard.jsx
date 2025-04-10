@@ -5,7 +5,7 @@ import Modal from '../components/Model'; // Ensure the correct path and spelling
 import ProjectForm from '../components/ProjectForm'; // Ensure the correct path and spelling
 import TeamMemberForm from '../components/TeamMemberForm'; // Ensure the correct path and spelling
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCog } from '@fortawesome/free-solid-svg-icons';
+import { faCog, faPlus, faEdit, faTrash, faProjectDiagram, faUsers } from '@fortawesome/free-solid-svg-icons';
 
 const Dashboard = () => {
   const [projects, setProjects] = useState([]);
@@ -133,12 +133,15 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className='mb-6 bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-3 flex justify-between items-center'>
-        <h1 className="text-3xl font-bold mx-auto text-white">Project Management Software</h1>
+    <div className="min-h-screen bg-yellow-50">
+      <div className="mb-6 bg-gradient-to-r from-yellow-200 via-orange-300 to-brown-200 p-5 flex justify-between items-center shadow-lg">
+        <h1 className="text-4xl font-bold text-gray-800 flex items-center">
+          <FontAwesomeIcon icon={faProjectDiagram} className="mr-3 text-gray-600" />
+          Project Management Dashboard
+        </h1>
         <div className="relative">
           <button
-            className="bg-gray-700 text-white px-4 py-2 rounded-lg"
+            className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition-all"
             onClick={() => setIsSettingsOpen(!isSettingsOpen)}
           >
             <FontAwesomeIcon icon={faCog} />
@@ -155,51 +158,69 @@ const Dashboard = () => {
           )}
         </div>
       </div>
-      
+
       <div className="flex justify-end mb-4">
         <button
-          className="bg-purple-500 text-white px-4 py-2 rounded-lg mr-2 hover:bg-purple-700"
+          className="bg-yellow-300 text-gray-800 px-4 py-2 rounded-lg mr-2 hover:bg-yellow-400 flex items-center"
           onClick={() => setIsProjectModalOpen(true)}
         >
+          <FontAwesomeIcon icon={faPlus} className="mr-2" />
           Create New Project
         </button>
         <button
-          className="bg-pink-500 text-white px-4 py-2 rounded-lg mr-2 hover:bg-pink-700"
+          className="bg-orange-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-orange-400 flex items-center"
           onClick={() => setIsTeamMemberModalOpen(true)}
         >
-          Create New Team Member
+          <FontAwesomeIcon icon={faPlus} className="mr-2" />
+          Add Team Member
         </button>
       </div>
+
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-2xl font-semibold mb-4">Projects</h2>
-        <table className="min-w-full bg-white">
+        <h2 className="text-2xl font-semibold mb-4 flex items-center">
+          <FontAwesomeIcon icon={faProjectDiagram} className="mr-2 text-yellow-400" />
+          Projects
+        </h2>
+        <table className="min-w-full bg-white border-collapse border border-gray-300">
           <thead>
-            <tr className='bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-white'>
-              <th className="py-2">Project Name</th>
-              <th className="py-2">Description</th>
-              <th className="py-2">Start Date</th>
-              <th className="py-2">End Date</th>
-              <th className="py-2">Actions</th>
+            <tr className="bg-gradient-to-r from-yellow-200 via-orange-300 to-brown-200 text-gray-800">
+              <th className="py-2 px-4 border">Project Name</th>
+              <th className="py-2 px-4 border">Description</th>
+              <th className="py-2 px-4 border">Start Date</th>
+              <th className="py-2 px-4 border">End Date</th>
+              <th className="py-2 px-4 border">Actions</th>
             </tr>
           </thead>
           <tbody>
             {projects.map((project) => (
-              <tr key={project._id} className="cursor-pointer text-center">
-                <td className="border px-4 py-2" onClick={() => navigate(`/projects/${project._id}`)}>{project.project_name}</td>
-                <td className="border px-4 py-2" onClick={() => navigate(`/projects/${project._id}`)}>{project.project_description}</td>
-                <td className="border px-4 py-2" onClick={() => navigate(`/projects/${project._id}`)}>{new Date(project.project_start).toLocaleDateString()}</td>
-                <td className="border px-4 py-2" onClick={() => navigate(`/projects/${project._id}`)}>{new Date(project.project_end_date).toLocaleDateString()}</td>
-                <td className="border px-4 py-2">
+              <tr
+                key={project._id}
+                className="text-center hover:bg-yellow-100 cursor-pointer"
+                onClick={() => navigate(`/projects/${project._id}`)} // Navigate to ProjectDetails
+              >
+                <td className="border px-4 py-2">{project.project_name}</td>
+                <td className="border px-4 py-2">{project.project_description}</td>
+                <td className="border px-4 py-2">{new Date(project.project_start).toLocaleDateString()}</td>
+                <td className="border px-4 py-2">{new Date(project.project_end_date).toLocaleDateString()}</td>
+                <td className="border px-4 py-2 flex justify-center">
                   <button
-                    className="bg-yellow-500 text-white px-2 py-1 rounded-lg mr-2 hover:bg-yellow-700"
-                    onClick={() => handleEditClick(project)}
+                    className="bg-yellow-400 text-gray-800 px-2 py-1 rounded-lg mr-2 hover:bg-yellow-500 flex items-center"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent triggering row click
+                      handleEditClick(project);
+                    }}
                   >
+                    <FontAwesomeIcon icon={faEdit} className="mr-1" />
                     Edit
                   </button>
                   <button
-                    className="bg-red-500 text-white px-2 py-1 rounded-lg hover:bg-red-700"
-                    onClick={() => handleDeleteClick(project._id)}
+                    className="bg-red-300 text-gray-800 px-2 py-1 rounded-lg hover:bg-red-400 flex items-center"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent triggering row click
+                      handleDeleteClick(project._id);
+                    }}
                   >
+                    <FontAwesomeIcon icon={faTrash} className="mr-1" />
                     Delete
                   </button>
                 </td>
@@ -208,32 +229,38 @@ const Dashboard = () => {
           </tbody>
         </table>
       </div>
+
       <div className="bg-white p-6 rounded-lg shadow-md mt-6">
-        <h2 className="text-2xl font-semibold mb-4">Team Members</h2>
-        <table className="min-w-full bg-white">
+        <h2 className="text-2xl font-semibold mb-4 flex items-center">
+          <FontAwesomeIcon icon={faUsers} className="mr-2 text-orange-400" />
+          Team Members
+        </h2>
+        <table className="min-w-full bg-white border-collapse border border-gray-300">
           <thead>
-            <tr className='bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-white'>
-              <th className="py-2">Name</th>
-              <th className="py-2">Email</th>
-              <th className="py-2">Actions</th>
+            <tr className="bg-gradient-to-r from-yellow-200 via-orange-300 to-brown-200 text-gray-800">
+              <th className="py-2 px-4 border">Name</th>
+              <th className="py-2 px-4 border">Email</th>
+              <th className="py-2 px-4 border">Actions</th>
             </tr>
           </thead>
           <tbody>
             {teamMembers.map((member) => (
-              <tr key={member._id} className="text-center">
+              <tr key={member._id} className="text-center hover:bg-yellow-100">
                 <td className="border px-4 py-2">{member.name}</td>
                 <td className="border px-4 py-2">{member.email}</td>
-                <td className="border px-4 py-2">
+                <td className="border px-4 py-2 flex justify-center">
                   <button
-                    className="bg-yellow-500 text-white px-2 py-1 rounded-lg mr-2 hover:bg-yellow-700"
+                    className="bg-yellow-400 text-gray-800 px-2 py-1 rounded-lg mr-2 hover:bg-yellow-500 flex items-center"
                     onClick={() => handleEditMemberClick(member)}
                   >
+                    <FontAwesomeIcon icon={faEdit} className="mr-1" />
                     Edit
                   </button>
                   <button
-                    className="bg-red-500 text-white px-2 py-1 rounded-lg hover:bg-red-700"
+                    className="bg-red-300 text-gray-800 px-2 py-1 rounded-lg hover:bg-red-400 flex items-center"
                     onClick={() => handleDeleteMemberClick(member._id)}
                   >
+                    <FontAwesomeIcon icon={faTrash} className="mr-1" />
                     Delete
                   </button>
                 </td>

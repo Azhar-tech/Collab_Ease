@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEnvelope, faLock } from '@fortawesome/free-solid-svg-icons';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -38,31 +40,43 @@ const Login = () => {
         <h2 className="text-2xl font-semibold mb-4 text-center">Login</h2>
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
+          <div className="mb-4 relative">
             <label className="block text-lg font-medium mb-2" htmlFor="email">
               Email:
             </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg"
-              required
-            />
+            <div className="relative">
+              <FontAwesomeIcon
+                icon={faEnvelope}
+                className="absolute left-3 top-3 text-gray-400"
+              />
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full p-2 pl-10 border border-gray-300 rounded-lg"
+                required
+              />
+            </div>
           </div>
-          <div className="mb-4">
+          <div className="mb-4 relative">
             <label className="block text-lg font-medium mb-2" htmlFor="password">
               Password:
             </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-lg"
-              required
-            />
+            <div className="relative">
+              <FontAwesomeIcon
+                icon={faLock}
+                className="absolute left-3 top-3 text-gray-400"
+              />
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-2 pl-10 border border-gray-300 rounded-lg"
+                required
+              />
+            </div>
           </div>
           <button
             type="submit"
@@ -70,10 +84,15 @@ const Login = () => {
           >
             Login
           </button>
+          <p className="text-center">
+            Don't have an account?{' '}
+            <Link to="/signup" className="text-blue-500 hover:underline">
+              Signup here
+            </Link>
+          </p>
           <p className="text-blue-500 cursor-pointer text-sm text-center" onClick={() => navigate('/forgot-password')}>
-  Forgot Password?
-</p>
-
+            Forgot Password?
+          </p>
         </form>
       </div>
     </div>

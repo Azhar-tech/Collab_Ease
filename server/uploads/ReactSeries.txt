@@ -1,0 +1,4 @@
+npx(node package executer):
+  npx create-react-app nameofapp
+npm:
+npm create vite@latest

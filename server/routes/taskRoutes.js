@@ -20,11 +20,15 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Serve static files from the uploads folder with URL decoding
+// Serve static files from the uploads folder with logging
 router.use('/uploads', (req, res, next) => {
+  console.log('Requested URL:', req.url); // Log the requested URL
   req.url = decodeURIComponent(req.url); // Decode URL to handle spaces and special characters
   express.static(path.join(__dirname, '../uploads'))(req, res, next);
 });
+
+// Serve static files from the uploads folder
+router.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Ensure the uploads folder exists
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -217,12 +221,13 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 });
 
 router.get('/view/:filename', (req, res) => {
-  const filePath = path.join(__dirname, '../uploads', req.params.filename);
+  const decodedFilename = decodeURIComponent(req.params.filename); // Decode the filename
+  const filePath = path.join(__dirname, '../uploads', decodedFilename);
   
   if (fs.existsSync(filePath)) {
-      res.sendFile(filePath);
+    res.sendFile(filePath);
   } else {
-      res.status(404).json({ message: 'File not found' });
+    res.status(404).json({ message: 'File not found' });
   }
 });
 

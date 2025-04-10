@@ -180,7 +180,6 @@ const ProjectDetails = ({ userId }) => {
         </button>
       ) : null}
 
-
       <div className="bg-red- p-6 rounded-lg shadow-md mb-6">
         <h1 className="text-3xl font-bold mb-4">{project.project_name}</h1>
         <p className="mb-4">{project.project_description}</p>
