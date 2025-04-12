@@ -11,6 +11,7 @@ import Home from "./pages/Home";
 import ProjectDetails from "./components/ProjectDetails";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+
 const Layout = ({ children }) => {
   const location = useLocation();
   const isSignUpPage = location.pathname === "/Signup" || location.pathname === "/Login";

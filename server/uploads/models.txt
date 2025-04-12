@@ -1,0 +1,31 @@
+model User{
+  id: string @unique default(cuid)
+  name: string
+  email: string @unique
+  password: string
+}
+
+model Project{
+  id: string @unique default (cuid)
+  project_name: string
+  project_description: string
+  user_id: relation to User.id
+  tasks: Tasks[]
+  created_at: Date
+  updated_at: @updated_at()
+  project_start:Date
+  project_end_date: Date
+}
+
+model Task{
+  id: string @unique default (cuid)
+  task_name: string
+  task_description: string
+  project_id: relation to Project.id
+  assigned_to: User.id
+  created_at: Date
+  updated_at: @updated_at()
+  task_start_date: Date
+  task_end_date: Date
+}
+

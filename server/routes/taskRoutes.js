@@ -7,7 +7,44 @@ const authMiddleware = require('../middleware/authMiddleware');
 const multer = require('multer'); // Import multer for file uploads
 const fs = require('fs');
 const Project = require('../models/project'); // Update the path as needed
- // Import fs module
+const nodemailer = require('nodemailer'); // Import Nodemailer for email notifications
+require('dotenv').config(); // Load environment variables from .env
+
+// Configure Nodemailer transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST, // Use SMTP host from .env
+  port: process.env.SMTP_PORT, // Use SMTP port from .env
+  secure: false, // Use TLS (false for port 587)
+  auth: {
+    user: process.env.SMTP_USER, // Use email from .env
+    pass: process.env.SMTP_PASS, // Use password from .env
+  },
+});
+
+// Function to send email notification
+const sendEmailNotification = async (email, taskDetails) => {
+  try {
+    const mailOptions = {
+      from: process.env.GMAIL_USER, // Use sender email from .env
+      to: email,
+      subject: 'Task Assigned Notification',
+      text: `You have been assigned a new task. Here are the details:
+      
+Task Name: ${taskDetails.task_name}
+Description: ${taskDetails.task_description}
+Start Date: ${taskDetails.task_start_date}
+End Date: ${taskDetails.task_end_date}
+Comment: ${taskDetails.comment}
+
+Please check the project management system for more details.`,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Email sent to ${email}`);
+  } catch (error) {
+    console.error('Error sending email:', error.message);
+  }
+};
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -119,9 +156,10 @@ router.put('/:id', authMiddleware, upload.single('file'), async (req, res) => {
       return res.status(400).json({ message: "Invalid task ID format" });
     }
 
-    // Check if a file is expected but not uploaded
-    if (!req.file && req.body.fileRequired === 'true') {
-      return res.status(400).json({ message: "No file uploaded" });
+    // Fetch the task from the database
+    const task = await Task.findById(taskId);
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
     }
 
     // Parse assigned_to if it's a stringified JSON
@@ -139,50 +177,33 @@ router.put('/:id', authMiddleware, upload.single('file'), async (req, res) => {
       updateData.file = `uploads/${req.file.filename}`; // Save the relative file path
     }
 
+    // Send email notification if assigned_to is updated
+    if (parsedAssignedTo && parsedAssignedTo.email) {
+      const taskDetails = {
+        task_name: task.task_name,
+        task_description: task.task_description,
+        task_start_date: task.task_start_date,
+        task_end_date: task.task_end_date,
+        comment: comment || task.comment,
+      };
+      await sendEmailNotification(parsedAssignedTo.email, taskDetails);
+    }
+
     // Special case: Moving task from "review" to "in-progress"
     if (status === 'in-progress') {
       updateData.comment = comment || 'Moved back to in-progress'; // Add a default comment if none is provided
     }
 
-    // Fetch the task from the database before checking the condition
-    const task = await Task.findById(taskId);
-    if (!task) {
-      return res.status(404).json({ message: "Task not found" });
+    // Fetch the task and project to verify ownership
+    const project = await Project.findById(task.project_id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
     }
 
-    if (status === 'review' && task.assigned_to?.email !== req.user.email) {
-      return res.status(403).json({ message: "You are not authorized to move this task to review." });
+    // Ensure only the project owner can move tasks from 'review' to 'complete' or 'in-progress'
+    if ((status === 'completed' || status === 'in-progress') && project.user_id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Only the project owner can move this task to the specified status." });
     }
-    
-    // If task is currently in "review" and someone tries to change its status
-if (task.status === 'review' && (status === 'complete' || status === 'in-progress')) {
-  const project = await Project.findById(task.project_id);
-  if (!project) {
-    return res.status(404).json({ message: "Associated project not found" });
-  }
-
-  // Check if logged-in user is the project owner
-  if (project.user_id.toString() !== req.user._id.toString()) {
-    return res.status(403).json({ message: "Only the project owner can move a task from review to complete or in-progress" });
-  }
-}
-
-// Fetch the task and project to verify ownership
-
-if (!task) {
-  return res.status(404).json({ message: "Task not found" });
-}
-
-const project = await Project.findById(task.project_id);
-if (!project) {
-  return res.status(404).json({ message: "Project not found" });
-}
-
-// Ensure only the project owner can move tasks from 'review' to 'complete' or 'in-progress'
-if ((status === 'completed' || status === 'in-progress') && project.user_id.toString() !== req.user._id.toString()) {
-  return res.status(403).json({ message: "Only the project owner can move this task to the specified status." });
-}
-
 
     // Update the task in the database
     const updatedTask = await Task.findByIdAndUpdate(taskId, updateData, { new: true });
