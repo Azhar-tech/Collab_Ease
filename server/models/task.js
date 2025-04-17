@@ -9,8 +9,8 @@ const TaskSchema = new Schema({
   
   status: {
     type: String,
-    enum: ["Pending", "In Progress", "Review", "Completed"],
-    default: "Pending",
+    enum: ["pending", "in-progress", "review", "completed"], // Add 'in-progress' to the enum
+    default: "pending",
   },
 
   assigned_to: {
@@ -27,7 +27,7 @@ const TaskSchema = new Schema({
     },
   ],
 
-  file: { type: String }, // Add a field to store the file path
+  files: [{ type: String }], // Change 'file' to 'files' and make it an array
 
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },

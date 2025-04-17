@@ -5,6 +5,7 @@ import Modal from '../components/Model'; // Ensure the correct path and spelling
 import ProjectForm from '../components/ProjectForm'; // Ensure the correct path and spelling
 import TeamMemberForm from '../components/TeamMemberForm'; // Ensure the correct path and spelling
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import logo from '../components/images/logo.png' // Import the logo image
 import { faCog, faPlus, faEdit, faTrash, faProjectDiagram, faUsers } from '@fortawesome/free-solid-svg-icons';
 
 const Dashboard = () => {
@@ -134,14 +135,19 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-yellow-50">
-      <div className="mb-6 bg-gradient-to-r from-yellow-200 via-orange-300 to-brown-200 p-5 flex justify-between items-center shadow-lg">
-        <h1 className="text-4xl font-bold text-gray-800 flex items-center">
+      <div className="mb-6 bg-gray-200  p-5 flex justify-between items-center shadow-lg">
+         <img
+                    src={logo} // Updated src to point to the logo image
+                    alt="Logo"
+                    className="h-auto max-h-20  object-contain" // Adjust height and width dynamically
+                  />
+        <h1 className="text-3xl font-bold text-blue-950 flex items-center">
           <FontAwesomeIcon icon={faProjectDiagram} className="mr-3 text-gray-600" />
           Project Management Dashboard
         </h1>
         <div className="relative">
           <button
-            className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition-all"
+            className="bg-gray-300 text-blue-500 px-4 py-2 rounded-lg hover:bg-gray-400 transition-all"
             onClick={() => setIsSettingsOpen(!isSettingsOpen)}
           >
             <FontAwesomeIcon icon={faCog} />
@@ -176,14 +182,14 @@ const Dashboard = () => {
         </button>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-md">
+      <div className="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
         <h2 className="text-2xl font-semibold mb-4 flex items-center">
-          <FontAwesomeIcon icon={faProjectDiagram} className="mr-2 text-yellow-400" />
+          <FontAwesomeIcon icon={faProjectDiagram} className="mr-2 " />
           Projects
         </h2>
-        <table className="min-w-full bg-white border-collapse border border-gray-300">
+        <table className="min-w-full bg-white border-none ">
           <thead>
-            <tr className="bg-gradient-to-r from-yellow-200 via-orange-300 to-brown-200 text-gray-800">
+            <tr className="bg-blue-950 text-white">
               <th className="py-2 px-4 border">Project Name</th>
               <th className="py-2 px-4 border">Description</th>
               <th className="py-2 px-4 border">Start Date</th>
@@ -195,16 +201,16 @@ const Dashboard = () => {
             {projects.map((project) => (
               <tr
                 key={project._id}
-                className="text-center hover:bg-yellow-100 cursor-pointer"
+                className="text-center hover:bg-yellow-100 cursor-pointer odd:bg-white even:bg-gray-100"
                 onClick={() => navigate(`/projects/${project._id}`)} // Navigate to ProjectDetails
               >
-                <td className="border px-4 py-2">{project.project_name}</td>
-                <td className="border px-4 py-2">{project.project_description}</td>
-                <td className="border px-4 py-2">{new Date(project.project_start).toLocaleDateString()}</td>
-                <td className="border px-4 py-2">{new Date(project.project_end_date).toLocaleDateString()}</td>
-                <td className="border px-4 py-2 flex justify-center">
+                <td className="px-4 py-2">{project.project_name}</td>
+                <td className="px-4 py-2">{project.project_description}</td>
+                <td className="px-4 py-2">{new Date(project.project_start).toLocaleDateString()}</td>
+                <td className="px-4 py-2">{new Date(project.project_end_date).toLocaleDateString()}</td>
+                <td className="px-4 py-2 flex justify-center">
                   <button
-                    className="bg-yellow-400 text-gray-800 px-2 py-1 rounded-lg mr-2 hover:bg-yellow-500 flex items-center"
+                    className="bg-blue-950 text-white px-2 py-1 rounded-lg mr-2 hover:bg-yellow-500 flex items-center"
                     onClick={(e) => {
                       e.stopPropagation(); // Prevent triggering row click
                       handleEditClick(project);
@@ -214,7 +220,7 @@ const Dashboard = () => {
                     Edit
                   </button>
                   <button
-                    className="bg-red-300 text-gray-800 px-2 py-1 rounded-lg hover:bg-red-400 flex items-center"
+                    className="bg-blue-950 text-white px-2 py-1 rounded-lg hover:bg-red-400 flex items-center"
                     onClick={(e) => {
                       e.stopPropagation(); // Prevent triggering row click
                       handleDeleteClick(project._id);
@@ -230,14 +236,14 @@ const Dashboard = () => {
         </table>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-md mt-6">
+      <div className="bg-white p-6 rounded-lg shadow-md mt-6 overflow-x-auto">
         <h2 className="text-2xl font-semibold mb-4 flex items-center">
-          <FontAwesomeIcon icon={faUsers} className="mr-2 text-orange-400" />
+          <FontAwesomeIcon icon={faUsers} className="mr-2 " />
           Team Members
         </h2>
         <table className="min-w-full bg-white border-collapse border border-gray-300">
           <thead>
-            <tr className="bg-gradient-to-r from-yellow-200 via-orange-300 to-brown-200 text-gray-800">
+            <tr className="bg-blue-950 text-white">
               <th className="py-2 px-4 border">Name</th>
               <th className="py-2 px-4 border">Email</th>
               <th className="py-2 px-4 border">Actions</th>
@@ -245,19 +251,22 @@ const Dashboard = () => {
           </thead>
           <tbody>
             {teamMembers.map((member) => (
-              <tr key={member._id} className="text-center hover:bg-yellow-100">
-                <td className="border px-4 py-2">{member.name}</td>
-                <td className="border px-4 py-2">{member.email}</td>
-                <td className="border px-4 py-2 flex justify-center">
+              <tr
+                key={member._id}
+                className="text-center hover:bg-yellow-100 odd:bg-white even:bg-gray-100"
+              >
+                <td className="px-4 py-2">{member.name}</td>
+                <td className="px-4 py-2">{member.email}</td>
+                <td className="px-4 py-2 flex justify-center">
                   <button
-                    className="bg-yellow-400 text-gray-800 px-2 py-1 rounded-lg mr-2 hover:bg-yellow-500 flex items-center"
+                    className="bg-blue-950 text-white px-2 py-1 rounded-lg mr-2 hover:bg-yellow-500 flex items-center"
                     onClick={() => handleEditMemberClick(member)}
                   >
                     <FontAwesomeIcon icon={faEdit} className="mr-1" />
                     Edit
                   </button>
                   <button
-                    className="bg-red-300 text-gray-800 px-2 py-1 rounded-lg hover:bg-red-400 flex items-center"
+                    className="bg-blue-950 text-white px-2 py-1 rounded-lg hover:bg-red-400 flex items-center"
                     onClick={() => handleDeleteMemberClick(member._id)}
                   >
                     <FontAwesomeIcon icon={faTrash} className="mr-1" />

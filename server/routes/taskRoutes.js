@@ -46,16 +46,17 @@ Please check the project management system for more details.`,
   }
 };
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Directory to store uploaded files
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${file.originalname}`); // Unique file name
-  },
+// Configure multer for multiple file uploads
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, 'uploads/'); // Directory to store uploaded files
+    },
+    filename: (req, file, cb) => {
+      cb(null, `${file.originalname}`); // Unique file name
+    },
+  }),
 });
-const upload = multer({ storage });
 
 // Serve static files from the uploads folder with logging
 router.use('/uploads', (req, res, next) => {
@@ -145,6 +146,28 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
+// ✅ Get a specific task by ID
+router.get('/:id', authMiddleware, async (req, res) => {
+  try {
+    const taskId = req.params.id;
+
+    // Validate task ID
+    if (!mongoose.Types.ObjectId.isValid(taskId)) {
+      return res.status(400).json({ message: "Invalid task ID format" });
+    }
+
+    const task = await Task.findById(taskId).populate('assigned_to', 'name email');
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    res.status(200).json(task);
+  } catch (error) {
+    console.error("Error fetching task:", error.message);
+    res.status(500).json({ message: "Error fetching task", error: error.message });
+  }
+});
+
 // ✅ Update a task by ID with file upload
 router.put('/:id', authMiddleware, upload.single('file'), async (req, res) => {
   try {
@@ -156,20 +179,83 @@ router.put('/:id', authMiddleware, upload.single('file'), async (req, res) => {
       return res.status(400).json({ message: "Invalid task ID format" });
     }
 
-    // Fetch the task from the database
-    const task = await Task.findById(taskId);
+    // Fetch the task and project details
+    const task = await Task.findById(taskId).populate('assigned_to', '_id'); // Ensure assigned_to is populated
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    // Parse assigned_to if it's a stringified JSON
-    const parsedAssignedTo = assigned_to ? JSON.parse(assigned_to) : null;
+    const project = await Project.findById(task.project_id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // Debugging logs to identify the issue
+    console.log("Task Details:", task);
+    console.log("Project Details:", project);
+    console.log("Logged-in User:", req.user);
+
+    // Authorization: Check if the user is either the project creator or the assigned user
+    const isProjectCreator = project.user_id && project.user_id.toString() === req.user._id.toString();
+    const isAssignedUser = task.assigned_to && task.assigned_to.email === req.user.email;
+
+
+    // Restrict moving task from "Pending" to "Review"
+    if (task.status === 'pending' && status === 'review') {
+      if (!isProjectCreator && !isAssignedUser) {
+        console.log("Authorization failed: User is neither the project creator nor the assigned user.");
+        return res.status(403).json({ message: "Only the project creator or the assigned user can move this task to Review." });
+      }
+    }
+
+    // Restrict moving task from "Pending" to "In Progress"
+    if (task.status === 'pending' && status === 'in-progress') {
+      if (!isProjectCreator && !isAssignedUser) {
+        console.log("Authorization failed: User is neither the project creator nor the assigned user.");
+        return res.status(403).json({ message: "Only the project creator or the assigned user can move this task to In Progress." });
+      }
+    }
+    
+
+    // Restrict moving task from "In Progress" to "Pending"
+if (task.status === 'in-progress' && status === 'pending') {
+  if (!isAssignedUser) {
+    console.log("Authorization failed: Only the assigned user can move this task back to Pending.");
+    return res.status(403).json({ message: "Only the assigned user can move the task back to Pending." });
+  }
+}
+
+// Restrict moving task from "In Progress" to "Review"
+if (task.status === 'in-progress' && status === 'review') {
+  if (!isAssignedUser) {
+    console.log("Authorization failed: Only the assigned user can move this task to Review.");
+    return res.status(403).json({ message: "Only the assigned user can move the task to Review." });
+  }
+}
+
+// Restrict moving task from "Review" to "Complete"
+if (task.status === 'review' && status === 'complete') {
+  if (!isProjectCreator) {
+    console.log("Authorization failed: Only the project creator can move this task to Complete.");
+    return res.status(403).json({ message: "Only the project owner can move the task from Review to Complete." });
+  }
+}
+
+// Restrict moving task from "Review" to "In Progress"
+if (task.status === 'review' && status === 'in-progress') {
+  if (!isProjectCreator) {
+    console.log("Authorization failed: Only the project creator can move this task back to In Progress.");
+    return res.status(403).json({ message: "Only the project owner can move the task from Review to In Progress." });
+  }
+}
+
+
 
     // Prepare the update object
     const updateData = {
       ...(status && { status }), // Ensure status is updated
       ...(comment && { comment }), // Ensure comment is updated
-      ...(parsedAssignedTo && { assigned_to: parsedAssignedTo }), // Ensure assigned_to is updated
+      ...(assigned_to && { assigned_to: JSON.parse(assigned_to) }), // Ensure assigned_to is updated
     };
 
     // Handle file upload
@@ -177,40 +263,9 @@ router.put('/:id', authMiddleware, upload.single('file'), async (req, res) => {
       updateData.file = `uploads/${req.file.filename}`; // Save the relative file path
     }
 
-    // Send email notification if assigned_to is updated
-    if (parsedAssignedTo && parsedAssignedTo.email) {
-      const taskDetails = {
-        task_name: task.task_name,
-        task_description: task.task_description,
-        task_start_date: task.task_start_date,
-        task_end_date: task.task_end_date,
-        comment: comment || task.comment,
-      };
-      await sendEmailNotification(parsedAssignedTo.email, taskDetails);
-    }
-
-    // Special case: Moving task from "review" to "in-progress"
-    if (status === 'in-progress') {
-      updateData.comment = comment || 'Moved back to in-progress'; // Add a default comment if none is provided
-    }
-
-    // Fetch the task and project to verify ownership
-    const project = await Project.findById(task.project_id);
-    if (!project) {
-      return res.status(404).json({ message: "Project not found" });
-    }
-
-    // Ensure only the project owner can move tasks from 'review' to 'complete' or 'in-progress'
-    if ((status === 'completed' || status === 'in-progress') && project.user_id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Only the project owner can move this task to the specified status." });
-    }
-
     // Update the task in the database
-    const updatedTask = await Task.findByIdAndUpdate(taskId, updateData, { new: true });
-
-    if (!updatedTask) {
-      return res.status(404).json({ message: "Task not found" });
-    }
+    Object.assign(task, updateData); // Merge the updateData into the task
+    const updatedTask = await task.save(); // Save the task with the new comment and updates
 
     res.status(200).json(updatedTask);
   } catch (error) {
@@ -238,6 +293,77 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error("Error deleting task:", error.message);
     res.status(500).json({ message: "Error deleting task", error: error.message });
+  }
+});
+
+// Add a comment to a task
+router.post('/:id/comments', authMiddleware, async (req, res) => {
+  try {
+    const { comment } = req.body;
+    const task = await Task.findById(req.params.id);
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    task.comments.push({ text: comment, author: req.user.name });
+    await task.save();
+
+    res.status(200).json(task);
+  } catch (error) {
+    console.error('Error adding comment:', error.message);
+    res.status(500).json({ message: 'Error adding comment', error: error.message });
+  }
+});
+
+// Upload a file to a task
+router.put('/:id/file', authMiddleware, upload.single('file'), async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    task.file = `uploads/${req.file.filename}`;
+    await task.save();
+
+    res.status(200).json(task);
+  } catch (error) {
+    console.error('Error uploading file:', error.message);
+    res.status(500).json({ message: 'Error uploading file', error: error.message });
+  }
+});
+
+// Upload multiple files to a task
+router.put('/:id/files', authMiddleware, upload.array('files', 10), async (req, res) => {
+  try {
+    const taskId = req.params.id;
+
+    // Validate task ID
+    if (!mongoose.Types.ObjectId.isValid(taskId)) {
+      return res.status(400).json({ message: "Invalid task ID format" });
+    }
+
+    const task = await Task.findById(taskId);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Check if files were uploaded
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: 'No files uploaded' });
+    }
+
+    // Add uploaded file paths to the task
+    const filePaths = req.files.map(file => `uploads/${file.filename}`);
+    task.files = [...(task.files || []), ...filePaths];
+    await task.save();
+
+    res.status(200).json(task);
+  } catch (error) {
+    console.error('Error uploading files:', error.message);
+    res.status(500).json({ message: 'Error uploading files', error: error.message });
   }
 });
 

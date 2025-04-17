@@ -9,6 +9,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Home from "./pages/Home";
 import ProjectDetails from "./components/ProjectDetails";
+import TaskDetails from "./components/TaskDetails"; // Import TaskDetails component
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -43,6 +44,7 @@ function App() {
         <Route path = "/Contact" element={<><Menu/><Contact/></>}/>
         <Route path="/Dashboard" element={<Dashboard />} />
         <Route path="/projects/:projectId" element={<ProjectDetails />} />
+        <Route path="/task/:taskId" element={<TaskDetails />} /> {/* Add this route */}
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
       </Routes>

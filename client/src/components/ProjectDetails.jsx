@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom'; // Import Link for navigation
 import axios from '../axiosConfig';
 import Modal from './Model';
 import TaskForm from './TaskForm';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'; // Import FontAwesome
+import { faArrowLeft, faPlus, faCheck, faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons'; // Import specific icons
 
 const ProjectDetails = ({ userId }) => {
   const { projectId } = useParams();
@@ -88,38 +91,67 @@ const ProjectDetails = ({ userId }) => {
 
   const updateTaskStatus = async (taskId, newStatus, assignedTo = null, comment = "", file = null) => {
     try {
-      if (assignedTo && assignedTo._id !== userId) {
-        alert("You are not authorized to upload a file for this task.");
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('status', newStatus);
-      if (comment) formData.append('comment', comment);
-      if (assignedTo) formData.append('assigned_to', JSON.stringify(assignedTo));
-      if (file) formData.append('file', file); // Append the file to FormData
-
-      // Send the request to update the task
-      try {
-        await axios.put(`/tasks/${taskId}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        fetchTasks();
-      } catch (error) {
-        if (error.response && error.response.status === 403) {
-          alert("You are not authorized to move this task. Only the project owner can perform this action.");
-        } else {
-          console.error("Error updating task status:", error);
-          alert("An error occurred while updating the task status. Please try again later.");
+      const task = [...pendingTasks, ...inProgressTasks, ...reviewTasks, ...completedTasks].find(t => t._id === taskId);
+  
+      // Restrict moving task from "In Progress" to "Review" or "Pending" to only the project owner or assigned user
+      if (task && task.status.toLowerCase() === "in-progress" && (newStatus.toLowerCase() === "review" || newStatus.toLowerCase() === "pending")) {
+        const isAssignedUser = task.assigned_to && task.assigned_to._id === userId;
+        if (!isProjectCreator && !isAssignedUser) {
+          alert("Only the project owner or the assigned user can move this task to Review or Pending.");
+          return;
         }
       }
+  
+      // Restrict marking as completed to only the project owner
+      if (newStatus.toLowerCase() === "completed" && !isProjectCreator) {
+        alert("Only the project owner can mark a task as completed.");
+        return;
+      }
+  
+      const formData = new FormData();
+      formData.append("status", newStatus);
+      if (comment) formData.append("comment", comment);
+      if (assignedTo) formData.append("assigned_to", JSON.stringify(assignedTo));
+      if (file) formData.append("file", file);
+  
+      const token = getToken();
+      if (!token) {
+        alert("Your session has expired. Please log in again.");
+        navigate("/login");
+        return;
+      }
+  
+      await axios.put(`/tasks/${taskId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data", Authorization: `Bearer ${token}` },
+      });
+  
+      fetchTasks(); // Refresh tasks after updating
     } catch (error) {
-      console.error("Error updating task status:", error);
+      if (error.response && error.response.status === 403) {
+        alert(error.response.data.message || "You are not authorized to move this task.");
+      } else {
+        console.error("Error updating task status:", error);
+        alert("An error occurred while updating the task status. Please try again later.");
+      }
     }
   };
+  
 
-  // Update the file handling logic inside the component
+  const handleFileUpload = async (taskId, files) => {
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(file => formData.append('files', file)); // Append multiple files
 
+      await axios.put(`/tasks/${taskId}/files`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      fetchTasks(); // Refresh tasks after upload
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      alert('Failed to upload files. Please try again.');
+    }
+  };
 
   useEffect(() => {
     fetchProject();
@@ -174,206 +206,214 @@ const ProjectDetails = ({ userId }) => {
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-      {isProjectCreator || !hasAssignedActiveTask ? (
-        <button onClick={() => navigate('/dashboard')} className="mb-4 text-blue-500">
-          Back to Dashboard
-        </button>
-      ) : null}
+      {/* Page Heading */}
+      <div className="relative mb-6">
+  {(isProjectCreator || !hasAssignedActiveTask) && (
+    <button
+      onClick={() => navigate('/dashboard')}
+      className="absolute left-0 text-blue-500 flex items-center gap-2"
+    >
+      <FontAwesomeIcon icon={faArrowLeft} />
+      <span className="sr-only">Back to Dashboard</span>
+    </button>
+  )}
 
-      <div className="bg-red- p-6 rounded-lg shadow-md mb-6">
-        <h1 className="text-3xl font-bold mb-4">{project.project_name}</h1>
+  <h1 className="text-4xl font-bold text-center">Project Details</h1>
+</div>
+
+      
+
+
+      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+        <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">
+          <FontAwesomeIcon icon={faEdit} className="text-purple-500" /> {/* Icon for project title */}
+          {project.project_name}
+        </h1>
         <p className="mb-4">{project.project_description}</p>
         {isProjectCreator && (
           <button
-            className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+            className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center gap-2"
             onClick={handleCreateTaskClick}
           >
+            <FontAwesomeIcon icon={faPlus} /> {/* Plus icon */}
             Create New Task
           </button>
         )}
-
-
-        {/* Optionally show an alert or message if the user is not the creator */}
         {!isProjectCreator && (
-          <p className="text-red-500 mt-2">You are not the project owner. You cannot create tasks.</p>
+          <p className="text-red-500 mt-2">
+            You are not the project owner. You cannot create tasks.
+          </p>
         )}
       </div>
+
       <div className="grid gap-4">
         {/* Pending Tasks */}
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Pending</h2>
-          <table className="table-auto w-full border-collapse border border-gray-300">
-            <thead>
-              <tr className="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-white">
-                <th className="border border-gray-300 px-4 py-2">Task Name</th>
-                <th className="border border-gray-300 px-4 py-2">Description</th>
-                {isProjectCreator && <th className="border border-gray-300 px-4 py-2">Assign</th>}
-              </tr>
-            </thead>
-            <tbody className="text-center">
-              {pendingTasks.map(task => (
-                <tr key={task._id}>
-                  <td className="border border-gray-300 px-4 py-2">{task.task_name}</td>
-                  <td className="border border-gray-300 px-4 py-2">{task.task_description}</td>
+        <div className="bg-white p-4 rounded-lg shadow-md overflow-x-auto">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <FontAwesomeIcon icon={faEdit} className="text-gray-600" /> {/* Icon for section */}
+            Pending
+          </h2>
+          <div className="min-w-[1500px]">
+            <table className="table-auto w-full border-collapse border border-gray-300 text-sm md:text-base">
+              <thead>
+                <tr className="bg-gray-600 text-white text-center">
+                  <th className="border border-gray-300 px-2 md:px-4 py-2">Task Name</th>
+                  <th className="border border-gray-300 px-2 md:px-4 py-2">Description</th>
                   {isProjectCreator && (
-                    <td className="border border-gray-300 px-4 py-2">
-                      <button
-                        className="bg-blue-500 text-white px-4 py-2 rounded-lg"
-                        onClick={() => handleAssignTask(task)}
-                      >
-                        Assign to Team Member
-                      </button>
-                    </td>
+                    <th className="border border-gray-300 px-2 md:px-4 py-2">Assign</th>
                   )}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="text-center">
+  {pendingTasks.map(task => (
+    <tr key={task._id}>
+      <td className="border border-gray-300 px-2 md:px-4 py-2">{task.task_name}</td>
+      <td className="border border-gray-300 px-2 md:px-4 py-2">{task.task_description}</td>
+      {isProjectCreator && (
+        <td className="border border-gray-300 px-2 md:px-4 py-2">
+          <div className="flex justify-center gap-2">
+            {task.assigned_to ? (
+              <>
+                <span className="text-green-500 italic">Assigned</span> {/* Show "Assigned" if the task is already assigned */}
+                <button
+                  className="bg-blue-500 text-white px-2 md:px-4 py-2 rounded-lg"
+                  onClick={() => updateTaskStatus(task._id, 'in-progress')}
+                >
+                  Move to In Progress
+                </button>
+              </>
+            ) : (
+              <button
+                className="bg-blue-500 text-white px-2 md:px-4 py-2 rounded-lg flex items-center gap-2"
+                onClick={() => handleAssignTask(task)}
+              >
+                <FontAwesomeIcon icon={faPlus} /> {/* Plus icon */}
+                Assign
+              </button>
+            )}
+          </div>
+        </td>
+      )}
+    </tr>
+  ))}
+</tbody>
+            </table>
+          </div>
         </div>
 
         {/* In Progress Tasks */}
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">In Progress</h2>
-          <table className="table-auto w-full border-collapse border border-gray-300">
-            <thead className="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-white">
-              <tr>
-                <th className="border border-gray-300 px-4 py-2">Task Name</th>
-                <th className="border border-gray-300 px-4 py-2">Description</th>
-                <th className="border border-gray-300 px-4 py-2">Assigned To</th>
-                <th className="border border-gray-300 px-4 py-2">Comment</th>
-                {isProjectCreator && <th className="border border-gray-300 px-4 py-2">Action</th>}
-              </tr>
-            </thead>
-            <tbody className="text-center">
-              {inProgressTasks.map(task => (
-                <tr key={task._id}>
-                  <td className="border border-gray-300 px-4 py-2">{task.task_name}</td>
-                  <td className="border border-gray-300 px-4 py-2">{task.task_description}</td>
-                  <td className="border border-gray-300 px-4 py-2">{task.assigned_to?.name || "Unassigned"}</td> {/* Display assigned user */}
-                  <td className="border border-gray-300 px-4 py-2">
-                    {task.comment ? (
-                      <>
-                        {expandedComments[task._id]
-                          ? task.comment
-                          : `${task.comment.slice(0, 50)}...`}
-                        <button
-                          onClick={() => toggleComment(task._id)}
-                          className="text-blue-500 underline ml-2"
-                        >
-                          {expandedComments[task._id] ? "Show Less" : "Show More"}
-                        </button>
-                      </>
-                    ) : (
-                      "No comment"
-                    )}
-                  </td>
-                  {task.assigned_to && task.assigned_to._id === userId ? (
-                    <td className="border border-gray-300 px-4 py-2">
-                      <input
-                        type="file"
-                        onClick={(e) => {
-                          if (task.assigned_to && task.assigned_to._id !== userId) {
-                            alert("You are not authorized to upload a file for this task.");
-                            e.preventDefault(); // Prevent the file dialog from opening
-                          }
-                        }}
-                        onChange={(e) => {
-                          const file = e.target.files[0];
-                          if (file) {
-                            updateTaskStatus(task._id, 'review', task.assigned_to, null, file);
-                          }
-                        }}
-                      />
-                    </td>
-                  ) : (
-                    <td className="border border-gray-300 px-4 py-2 text-gray-400 italic">
-                      Only assigned user can upload
-                    </td>
-                  )}
-
+        <div className="bg-white p-4 rounded-lg shadow-md overflow-x-auto">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <FontAwesomeIcon icon={faEdit} className="text-gray-600" /> {/* Icon for section */}
+            In Progress
+          </h2>
+          <div className="min-w-[1500px]">
+            <table className="table-auto w-full border-collapse border border-gray-300 text-sm md:text-base">
+              <thead className="text-white">
+                <tr className="bg-gray-700">
+                  <th className="border border-gray-300 px-2 md:px-4 py-2">Task Name</th>
+                  <th className="border border-gray-300 px-2 md:px-4 py-2">Description</th>
+                  <th className="border border-gray-300 px-2 md:px-4 py-2">Assigned To</th>
+                  
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="text-center">
+                {inProgressTasks.map(task => (
+                  <tr key={task._id} className="odd:bg-white even:bg-gray-100">
+                    <td className="border border-gray-300 px-2 md:px-4 py-2">
+                      <Link
+                        to={`/task/${task._id}`} // Navigate to TaskDetails component
+                        className="text-blue-500 underline"
+                      >
+                        {task.task_name}
+                      </Link>
+                    </td>
+                    <td className="border border-gray-300 px-2 md:px-4 py-2">{task.task_description}</td>
+                    <td className="border border-gray-300 px-2 md:px-4 py-2">
+                      {task.assigned_to?.name || "Unassigned"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Review Tasks */}
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Review</h2>
-          <table className="table-auto w-full border-collapse border border-gray-300">
-            <thead>
-              <tr className="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-white">
-                <th className="border border-gray-300 px-4 py-2">Task Name</th>
-                <th className="border border-gray-300 px-4 py-2">Description</th>
-                <th className="border border-gray-300 px-4 py-2">Assigned To</th> {/* Add Assigned To column */}
-                <th className="border border-gray-300 px-4 py-2">File</th>
-                {isProjectCreator && <th className="border border-gray-300 px-4 py-2">Action</th>}
-              </tr>
-            </thead>
-            <tbody className="text-center">
-              {reviewTasks.map(task => (
-                <tr key={task._id}>
-                  <td className="border border-gray-300 px-4 py-2">{task.task_name}</td>
-                  <td className="border border-gray-300 px-4 py-2">{task.task_description}</td>
-                  <td className="border border-gray-300 px-4 py-2">{task.assigned_to?.name || "Unassigned"}</td> {/* Display assigned user */}
-                  <td className="border border-gray-300 px-4 py-2">
-                    {task.file ? (
-                      <a
-                        href={`http://localhost:8001/${task.file}`} // Use the backend's static routed's static file route
-                        target="_blank"
-                        rel="noopener noreferrer"
+        <div className="bg-white p-4 rounded-lg shadow-md overflow-x-auto">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <FontAwesomeIcon icon={faCheck} className="text-gray-600" /> {/* Icon for section */}
+            Review
+          </h2>
+          <div className="min-w-[200px]">
+            <table className="table-auto  w-full border-collapse border border-gray-300 text-sm md:text-base">
+              <thead>
+                <tr className="bg-gray-700 text-white">
+                  <th className="border border-gray-300 px-2 md:px-4 py-2">Task Name</th>
+                  <th className="border border-gray-300 px-2 md:px-4 py-2">Description</th>
+                  <th className="border border-gray-300 px-2 md:px-4 py-2">Assigned To</th>
+                  
+                </tr>
+              </thead>
+              <tbody className="text-center">
+                {reviewTasks.map(task => (
+                  <tr key={task._id} className='odd:bg-white even:bg-gray-100'>
+                    <td className="border border-gray-300 px-2 md:px-4 py-2">
+                      <Link
+                        to={`/task/${task._id}`} // Navigate to TaskDetails component
                         className="text-blue-500 underline"
                       >
-                        View File
-                      </a>
-                    ) : (
-                      "No file uploaded"
-                    )}
-                  </td>
-                  {isProjectCreator && (
-                    <td className="border border-gray-300 px-4 py-2">
-                      <button
-                        onClick={() => updateTaskStatus(task._id, "completed")}
-                        className="bg-green-500 text-white px-4 py-2 rounded-lg mr-2"
-                      >
-                        Approve & Complete
-                      </button>
-                      <button
-                        onClick={() => {
-                          const comment = prompt("Enter a comment for moving back to In Progress:");
-                          updateTaskStatus(task._id, "in-progress", task.assigned_to, comment || "");
-                        }}
-                        className="bg-yellow-500 text-white px-4 py-2 rounded-lg"
-                      >
-                        Back to In Progress
-                      </button>
+                        {task.task_name}
+                      </Link>
                     </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <td className="border border-gray-300 px-2 md:px-4 py-2">{task.task_description}</td>
+                    <td className="border border-gray-300 px-2 md:px-4 py-2">
+                      {task.assigned_to?.name || "Unassigned"}
+                    </td>
+                    
+                    
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Completed Tasks */}
         <div className="bg-white p-4 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Completed</h2>
-          <table className="table-auto w-full border-collapse border border-gray-300">
-            <thead className="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-white">
-              <tr>
-                <th className="border border-gray-300 px-4 py-2">Task Name</th>
-                <th className="border border-gray-300 px-4 py-2">Description</th>
-              </tr>
-            </thead>
-            <tbody className="text-center">
-              {completedTasks.map(task => (
-                <tr key={task._id}>
-                  <td className="border border-gray-300 px-4 py-2">{task.task_name}</td>
-                  <td className="border border-gray-300 px-4 py-2">{task.task_description}</td>
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <FontAwesomeIcon icon={faCheck} className="text-gray-600" /> {/* Icon for section */}
+            Completed
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="table-auto w-full border-collapse border border-gray-300 text-sm md:text-base">
+              <thead className="bg-gray-700 text-white">
+                <tr>
+                  <th className="border border-gray-300 px-2 md:px-4 py-2">Task Name</th>
+                  <th className="border border-gray-300 px-2 md:px-4 py-2">Description</th>
+                  <th className="border border-gray-300 px-2 md:px-4 py-2">Assigned To</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="text-center">
+                {completedTasks.map(task => (
+                  <tr key={task._id} className="odd:bg-white even:bg-gray-100">
+                    <td className="border border-gray-300 px-2 md:px-4 py-2">
+                      <Link
+                        to={`/task/${task._id}`} // Navigate to TaskDetails component
+                        className="text-blue-500 underline"
+                      >
+                        {task.task_name}
+                      </Link>
+                    </td>
+                    <td className="border border-gray-300 px-2 md:px-4 py-2">{task.task_description}</td>
+                    <td className="border border-gray-300 px-2 md:px-4 py-2">
+                      {task.assigned_to?.name || "Unassigned"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
       <Modal isOpen={isTaskModalOpen} onClose={() => setIsTaskModalOpen(false)}>
