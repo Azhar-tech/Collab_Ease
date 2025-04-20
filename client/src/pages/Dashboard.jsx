@@ -26,6 +26,9 @@ const Dashboard = () => {
       try {
         const response = await axios.get('/projects');
         setProjects(response.data);
+        if (response.data.length > 0) {
+          setCurrentProject(response.data[0]); // Set the first project as the current project
+        }
       } catch (error) {
         console.error('Error fetching projects:', error);
       }
@@ -50,14 +53,16 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (!userId) {
-      setTeamMembers([]); // Clear team members list when userId changes
+    if (!userId || !currentProject) {
+      setTeamMembers([]); // Clear team members list if userId or currentProject is not available
       return;
     }
 
     const fetchTeamMembers = async () => {
       try {
-        const response = await axios.get('/team-members', { params: { userId } });
+        console.log('Fetching team members for project:', currentProject); // Debugging log
+        const response = await axios.get('/team-members', { params: { projectId: currentProject._id } }); // Use projectId
+        console.log('Fetched team members:', response.data); // Debugging log
         setTeamMembers(response.data);
       } catch (error) {
         console.error('Error fetching team members:', error);
@@ -65,7 +70,7 @@ const Dashboard = () => {
     };
 
     fetchTeamMembers();
-  }, [userId]);
+  }, [userId, currentProject]); // Fetch team members when userId or currentProject changes
 
   useEffect(() => {
     if (userEmail) {
@@ -109,9 +114,17 @@ const Dashboard = () => {
     }
   };
 
-  const handleMemberCreated = (newMember) => {
-    setTeamMembers([...teamMembers, newMember]);
-    setIsTeamMemberModalOpen(false);
+  const handleMemberCreated = async (newMember) => {
+    try {
+      const response = await axios.post('/team-members', {
+        ...newMember,
+        projectId: currentProject._id, // Associate with the current project
+      });
+      setTeamMembers([...teamMembers, response.data]);
+      setIsTeamMemberModalOpen(false);
+    } catch (error) {
+      console.error('Error creating team member:', error);
+    }
   };
 
   const handleEditMemberClick = (member) => {

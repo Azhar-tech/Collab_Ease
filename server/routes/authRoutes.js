@@ -5,6 +5,7 @@ const Task = require('../models/task'); // Import the Task model
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const authMiddleware = require('../middleware/authMiddleware');
+const TeamMember = require('../models/TeamMember');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
  // Import the middleware
@@ -26,6 +27,13 @@ router.post('/signup', async (req, res) => {
 
     // ✅ Link assigned tasks to this user
     await Task.updateMany({ 'assigned_to.email': email }, { $set: { user_id: user._id } });
+
+   // add this if not already imported
+    const teamMember = await TeamMember.findOne({ email });
+    if (teamMember) {
+      teamMember.userId = user._id;
+      await teamMember.save();
+    }
 
     // ✅ Fetch assigned tasks
     const tasks = await Task.find({ 'assigned_to.email': email });
@@ -142,7 +150,7 @@ router.post('/login', async (req, res) => {
         user = new User({
           name: tasks[0].assigned_to.name, // Use name from task
           email: emailLower,
-          role: role,
+          role: "user", // Set the role if needed
           password: hashedPassword, // Save hashed password
         });
 
@@ -167,7 +175,8 @@ router.post('/login', async (req, res) => {
     const projectIds = tasks.map(task => task.project_id);
     console.log("User authenticated. Redirecting to project:", projectIds[0]);
 
-    res.json({ token, projectIds });
+    // Return user, token, and projectIds
+    res.json({ token, user, projectIds });
 
   } catch (error) {
     console.error("Login error:", error);

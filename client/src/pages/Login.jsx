@@ -19,9 +19,17 @@ const Login = () => {
         password,
       });
   
-      const { token, projectIds } = response.data;
+      console.log("Login response:", response.data);
+  
+      const { token, projectIds, user } = response.data;
+  
+      // Check if user data is received
+      if (!user) {
+        throw new Error("User data missing from response");
+      }
   
       localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user)); // store user
   
       if (projectIds.length > 0) {
         navigate(`/projects/${projectIds[0]}`);
@@ -29,9 +37,11 @@ const Login = () => {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.msg || 'Something went wrong.');
+      console.error("Login error:", err);
+      setError(err.response?.data?.msg || err.message || 'Something went wrong.');
     }
   };
+  
   
 
   return (

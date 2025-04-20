@@ -5,15 +5,20 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 router.use(authMiddleware); // Protect all routes
 
-// Create a new team member
+// Create a new team member for a specific project
 router.post('/', async (req, res) => {
-  const { name, email } = req.body;
+  const { name, email, projectId } = req.body;
 
   try {
+    if (!projectId) {
+      return res.status(400).json({ message: 'Project ID is required' });
+    }
+
     const newTeamMember = new TeamMember({
       name,
       email,
-      userId: req.user.id  // Store the logged-in user's ID
+      projectId,
+      userId: req.user.id, // Associate with the logged-in user
     });
 
     const savedTeamMember = await newTeamMember.save();
@@ -24,10 +29,16 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get team members only for logged-in user
+// Fetch team members for a specific project
 router.get('/', async (req, res) => {
+  const { projectId } = req.query; // Expect projectId as a query parameter
+
   try {
-    const teamMembers = await TeamMember.find({ userId: req.user.id }); // Fetch only the logged-in user's team members
+    if (!projectId) {
+      return res.status(400).json({ message: 'Project ID is required' });
+    }
+
+    const teamMembers = await TeamMember.find({ projectId }); // Ensure this query is correct
     res.status(200).json(teamMembers);
   } catch (error) {
     console.error('Error fetching team members:', error.message);

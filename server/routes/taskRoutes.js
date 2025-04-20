@@ -378,5 +378,26 @@ router.get('/view/:filename', (req, res) => {
   }
 });
 
+// ✅ Get team members for a project
+router.get('/:projectId/team-members', authMiddleware, async (req, res) => {
+  try {
+    const projectId = req.params.projectId;
+
+    // Validate project ID
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({ message: "Invalid project ID format" });
+    }
+
+    const project = await Project.findById(projectId).populate('team_members', 'name email');
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    res.status(200).json(project.team_members);
+  } catch (error) {
+    console.error("Error fetching team members:", error.message);
+    res.status(500).json({ message: "Error fetching team members", error: error.message });
+  }
+});
 
 module.exports = router;

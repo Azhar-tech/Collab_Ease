@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../axiosConfig';
 
-const TeamsList = () => {
+const TeamsList = ({ projectId }) => { // Accept projectId as a prop
   const [teams, setTeams] = useState([]);
   const [userId, setUserId] = useState(null);
   const [newMember, setNewMember] = useState('');
@@ -20,28 +20,28 @@ const TeamsList = () => {
   }, []); // Run only once on component mount
 
   useEffect(() => {
-    if (userId) {
+    if (userId && projectId) { // Ensure projectId is available
       const fetchTeams = async () => {
         try {
-          const response = await axios.get('/team-members'); // Fetch only the logged-in user's team members
+          const response = await axios.get(`/team-members?projectId=${projectId}`); // Pass projectId as a query parameter
           setTeams(response.data);
         } catch (error) {
           console.error('Error fetching teams:', error);
+          alert(`Failed to fetch team members: ${error.response?.data?.message || error.message}`);
         }
       };
-  
+
       fetchTeams();
     }
-  }, [userId]); // Fetch only when userId is available
-   // Run when userId changes
+  }, [userId, projectId]); // Fetch only when userId and projectId are available
 
   const handleAddMember = async (teamId) => {
     try {
       await axios.post(`/teams/${teamId}/members`, { memberId: newMember }); // Replace with the actual endpoint to add a member
       setNewMember('');
       // Refresh the teams list
-      const response = await axios.get('/teams'); // Replace with the actual endpoint to fetch teams
-      setTeams(response.data.filter(team => team.userId === userId));
+      const response = await axios.get(`/team-members?projectId=${projectId}`); // Fetch updated team members
+      setTeams(response.data);
     } catch (error) {
       console.error('Error adding team member:', error);
     }

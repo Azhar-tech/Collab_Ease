@@ -5,7 +5,8 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true }, // ✅ Add role field\
   resetToken: String, // Add resetToken
-  resetTokenExpiry: Date, // Add resetTokenExpiry
+  resetTokenExpiry: Date,
+// optional profile picture
+ // Add resetTokenExpiry
 });
-
 module.exports = mongoose.model('User', UserSchema);
