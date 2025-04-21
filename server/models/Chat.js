@@ -26,4 +26,6 @@ const chatSchema = new Schema({
   },
 });
 
+chatSchema.index({ senderId: 1, receiverId: 1, isRead: 1 }); // Add an index for efficient queries
+
 module.exports = mongoose.model("Chat", chatSchema);

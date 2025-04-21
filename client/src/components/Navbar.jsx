@@ -53,6 +53,14 @@ const Menu = () => {
             Login
           </Link>
         </div>
+        <div className="hidden md:flex w-[20%] justify-center">
+          <Link
+            to="/signup"
+            className="bg-blue-400 text-white text-xl md:text-2xl px-6 md:px-8 text-center py-1 rounded-3xl hover:bg-white hover:text-black  transition-all"
+          >
+            signup
+          </Link>
+        </div>
 
         {/* Hamburger Menu */}
         <div

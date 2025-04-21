@@ -497,22 +497,45 @@ useEffect(() => {
   }
 }, []);
 
-const handleOpenChat = (member) => {
+const handleOpenChat = async (member) => {
   setSelectedChatMember(member);
   setShowChat(true); // Show the chat when a team member is clicked
 
-  // Mark messages as read for this member
+  // Immediately remove unread count for this member locally
+  setUnreadMessages((prev) =>
+    prev.filter((msg) => msg.senderId?.toString() !== member.userRefId?.toString())
+  );
+
+  // Mark messages as read for this member on the server
   const user = JSON.parse(localStorage.getItem("user"));
   const userId = user?._id;
-  if (socket && userId) {
-    console.log(`Emitting markMessagesAsRead for user: ${userId}, sender: ${member.userRefId}`); // Debugging log
-    socket.emit("markMessagesAsRead", { userId, senderId: member.userRefId });
-  }
+  if (userId) {
+    try {
+      const token = getToken();
+      if (!token) {
+        alert("Your session has expired. Please log in again.");
+        navigate("/login");
+        return;
+      }
 
-  // Remove unread count for this member
-  setUnreadMessages((prev) =>
-    prev.filter((msg) => msg.senderId !== member.userRefId)
-  );
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const response = await axios.put("http://localhost:8001/api/chats/mark-read", {
+        userId,
+        senderId: member.userRefId,
+      }, config);
+
+      console.log(`Messages from ${member.userRefId} marked as read.`, response.data);
+
+      // Fetch updated unread messages to ensure the badge is removed
+      const unreadResponse = await axios.get("http://localhost:8001/api/chats/unread", {
+        params: { userId },
+        ...config,
+      });
+      setUnreadMessages(unreadResponse.data); // Update unread messages state
+    } catch (error) {
+      console.error("Error marking messages as read:", error.response?.data || error.message);
+    }
+  }
 };
 
 const handleBackToTeamList = () => {
@@ -549,6 +572,52 @@ const handleBackToTeamList = () => {
         >
           Teams
         </button>
+
+        {/* Team Members List */}
+        {activeSection === "teams" && (
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold mb-4">Team Members</h3>
+            <ul className="space-y-2">
+              {teamMembers.map((member) => {
+                // Calculate the number of unread messages for this member
+                const unreadCount = unreadMessages.reduce((count, msg) => {
+                  const senderId = msg.senderId ? msg.senderId.toString() : msg._id?.toString(); // Fallback to _id if senderId is missing
+                  const userRefId = member.userRefId ? member.userRefId.toString() : undefined; // Ensure userRefId is a string
+                  return senderId === userRefId ? count + msg.count : count;
+                }, 0);
+              
+                return (
+                  <li
+                    key={member._id}
+                    className={`relative p-2 bg-white rounded-lg shadow-sm flex items-center gap-2 cursor-pointer ${
+                      selectedChatMember?._id === member._id ? "bg-blue-100" : ""
+                    }`}
+                    onClick={() => handleOpenChat(member)}
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">{member.name}</span>
+                      <span className="text-sm text-gray-500">{member.email}</span>
+                    </div>
+                    {unreadCount > 0 && (
+                      <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            {/* Add Member Button */}
+            <div className="flex justify-end mt-4">
+              <button
+                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+                onClick={() => setIsAddMemberModalOpen(true)}
+              >
+                Add Team Member
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
@@ -829,132 +898,65 @@ const handleBackToTeamList = () => {
           </>
         )}
 
-        {activeSection === "teams" && (
+        {activeSection === "teams" && selectedChatMember && (
           <>
-            {/* Team Chat Section */}
-            <div className="bg-white p-6 rounded-lg shadow-md mt-6">
-              <h2 className="text-xl font-semibold mb-4">Team Chat</h2>
-              <div className="flex gap-6">
-                {!showChat ? (
-                  // Team Members List
-                  <div className="w-full bg-gray-100 p-4 rounded-lg shadow-md">
-                    <h3 className="text-lg font-semibold mb-4">Team Members</h3>
-                    <ul className="space-y-2">
-                      {teamMembers.map((member) => {
-                        // Debugging logs to verify data
-                        console.log("Checking unread messages for member:", member);
-                        console.log("Unread messages:", unreadMessages);
-                      
-                        const hasUnreadMessages = unreadMessages.some((msg) => {
-                          const senderId = msg.senderId ? msg.senderId.toString() : msg._id?.toString(); // Fallback to _id if senderId is missing
-                          const userRefId = member.userRefId ? member.userRefId.toString() : undefined; // Ensure userRefId is a string
-                      
-                          console.log(`Comparing senderId: ${senderId} with userRefId: ${userRefId}`); // Debugging log
-                          return senderId === userRefId; // Check if there are unread messages
-                        });
-                      
-                        console.log(`Has unread messages for ${member.name}:`, hasUnreadMessages);
-                      
-                        return (
-                          <li
-                            key={member._id}
-                            className={`relative p-2 bg-white rounded-lg shadow-sm flex items-center gap-2 cursor-pointer ${
-                              selectedChatMember?._id === member._id ? "bg-blue-100" : ""
+            {/* Chat Messages */}
+            <div className="flex-1">
+              <div className="text-lg font-semibold mb-4 text-center">
+                Chat with {selectedChatMember.name}
+              </div>
+              <div
+                ref={chatContainerRef} // Attach the ref to the chat container
+                className="h-64 overflow-y-auto border rounded-lg p-4 mb-4 flex flex-col gap-2"
+              >
+                {filteredMessages.length > 0 ? (
+                  filteredMessages.map((message, index) => {
+                    const user = JSON.parse(localStorage.getItem("user"));
+                    const userId = user?._id;
+                    const isSentByUser = message.senderId === userId;
+          
+                    return (
+                      <div
+                        key={index}
+                        className={`flex ${isSentByUser ? "justify-end" : "justify-start"}`}
+                      >
+                        <div
+                          className={`max-w-xs p-3 rounded-lg shadow-md ${
+                            isSentByUser
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-200 text-black"
+                          }`}
+                        >
+                          <p>{message.text}</p>
+                          <div
+                            className={`text-xs mt-1 ${
+                              isSentByUser ? "text-gray-300" : "text-gray-500"
                             }`}
-                            onClick={() => handleOpenChat(member)}
                           >
-                            <div className="flex flex-col">
-                              <span className="font-medium">{member.name}</span>
-                              <span className="text-sm text-gray-500">{member.email}</span>
-                            </div>
-                      
-                            {hasUnreadMessages && (
-                              <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                                New
-                              </span>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                    {/* Add Member Button */}
-                    <div className="flex justify-end mb-4">
-                      <button
-                        className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
-                        onClick={() => setIsAddMemberModalOpen(true)}
-                      >
-                        Add Team Member
-                      </button>
-                    </div>
-                  </div>
+                            {new Date(message.timestamp).toLocaleTimeString()}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
                 ) : (
-                  // Chat Messages
-                  <div className="flex-1">
-                    <button
-                      className="text-blue-500 mb-4 flex items-center gap-2"
-                      onClick={handleBackToTeamList}
-                    >
-                      <FontAwesomeIcon icon={faArrowLeft} />
-                      Back to Team List
-                    </button>
-                    <div className="text-lg font-semibold mb-4 text-center">
-                      Chat with {selectedChatMember.name}
-                    </div>
-                    <div
-                      ref={chatContainerRef} // Attach the ref to the chat container
-                      className="h-64 overflow-y-auto border rounded-lg p-4 mb-4 flex flex-col gap-2"
-                    >
-                      {filteredMessages.length > 0 ? (
-                        filteredMessages.map((message, index) => {
-                          const user = JSON.parse(localStorage.getItem("user"));
-                          const userId = user?._id;
-                          const isSentByUser = message.senderId === userId;
-                
-                          return (
-                            <div
-                              key={index}
-                              className={`flex ${isSentByUser ? "justify-end" : "justify-start"}`}
-                            >
-                              <div
-                                className={`max-w-xs p-3 rounded-lg shadow-md ${
-                                  isSentByUser
-                                    ? "bg-blue-500 text-white"
-                                    : "bg-gray-200 text-black"
-                                }`}
-                              >
-                                <p>{message.text}</p>
-                                <div
-                                  className={`text-xs mt-1 ${
-                                    isSentByUser ? "text-gray-300" : "text-gray-500"
-                                  }`}
-                                >
-                                  {new Date(message.timestamp).toLocaleTimeString()}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <p className="text-gray-500">No messages yet. Start the conversation!</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        className="flex-grow border rounded px-3 py-2"
-                        placeholder={`Message ${selectedChatMember.name}...`}
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                      />
-                      <button
-                        className="bg-blue-500 text-white px-4 py-2 rounded-lg"
-                        onClick={handleSendMessage}
-                      >
-                        Send
-                      </button>
-                    </div>
-                  </div>
+                  <p className="text-gray-500">No messages yet. Start the conversation!</p>
                 )}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  className="flex-grow border rounded px-3 py-2"
+                  placeholder={`Message ${selectedChatMember.name}...`}
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                />
+                <button
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+                  onClick={handleSendMessage}
+                >
+                  Send
+                </button>
               </div>
             </div>
           </>

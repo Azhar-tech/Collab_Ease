@@ -91,12 +91,19 @@ router.put("/mark-read", async (req, res) => {
       return res.status(400).json({ error: "Missing required fields: userId and senderId" });
     }
 
-    await Chat.updateMany(
-      { receiverId: userId, senderId, isRead: false },
+    const receiverObjectId = new mongoose.Types.ObjectId(userId);
+    const senderObjectId = new mongoose.Types.ObjectId(senderId);
+
+    const result = await Chat.updateMany(
+      {
+        receiverId: receiverObjectId,
+        senderId: senderObjectId,
+        isRead: false,
+      },
       { $set: { isRead: true } }
     );
 
-    res.status(200).json({ message: "Messages marked as read" });
+    res.status(200).json({ message: "Messages marked as read", updatedCount: result.modifiedCount });
   } catch (error) {
     console.error("Error marking messages as read:", error);
     res.status(500).json({ error: "Internal server error" });
