@@ -234,7 +234,7 @@ if (task.status === 'in-progress' && status === 'review') {
 }
 
 // Restrict moving task from "Review" to "Complete"
-if (task.status === 'review' && status === 'complete') {
+if (task.status === 'review' && status === 'completed') {
   if (!isProjectCreator) {
     console.log("Authorization failed: Only the project creator can move this task to Complete.");
     return res.status(403).json({ message: "Only the project owner can move the task from Review to Complete." });
@@ -266,6 +266,23 @@ if (task.status === 'review' && status === 'in-progress') {
     // Update the task in the database
     Object.assign(task, updateData); // Merge the updateData into the task
     const updatedTask = await task.save(); // Save the task with the new comment and updates
+
+    // Send email notification if the task is assigned to a new user
+    if (assigned_to) {
+      const assignedUser = JSON.parse(assigned_to);
+      if (assignedUser && assignedUser.email) {
+        const emailSubject = `Task Assigned: ${task.task_name}`;
+        const emailText = `Hello ${assignedUser.name},\n\nYou have been assigned a new task:\n\nTask Name: ${task.task_name}\nDescription: ${task.task_description}\nStart Date: ${task.task_start_date}\nEnd Date: ${task.task_end_date}\nComment: ${comment || 'No comment provided'}\n\nPlease log in to the project management system for more details.\n\nBest regards,\nProject Management Team`;
+
+        await sendEmailNotification(assignedUser.email, {
+          task_name: task.task_name,
+          task_description: task.task_description,
+          task_start_date: task.task_start_date,
+          task_end_date: task.task_end_date,
+          comment,
+        });
+      }
+    }
 
     res.status(200).json(updatedTask);
   } catch (error) {

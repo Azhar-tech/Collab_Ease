@@ -175,8 +175,16 @@ router.post('/login', async (req, res) => {
     const projectIds = tasks.map(task => task.project_id);
     console.log("User authenticated. Redirecting to project:", projectIds[0]);
 
-    // Return user, token, and projectIds
-    res.json({ token, user, projectIds });
+    // Fetch assigned tasks for the user
+    const assignedTasks = await Task.find({ 'assigned_to.email': emailLower });
+
+    // Return user, token, projectIds, and assignedTasks
+    res.status(200).json({
+      token,
+      user,
+      projectIds, // Existing project IDs
+      assignedTasks, // Include assigned tasks in the response
+    });
 
   } catch (error) {
     console.error("Login error:", error);

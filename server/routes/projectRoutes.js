@@ -38,10 +38,26 @@ router.get("/", authMiddleware, async (req, res) => {
   try {
     console.log('Fetching projects for user:', req.user);
 
-    const projects = await Project.find({ user_id: req.user });
-    console.log('Retrieved projects:', projects); // Log the retrieved projects
+    // Fetch projects owned by the user
+    const ownedProjects = await Project.find({ user_id: req.user._id });
 
-    res.status(200).json(projects);
+    // Fetch project IDs from tasks assigned to the user
+    const assignedTaskProjects = await Task.find({ 'assigned_to.email': req.user.email }).distinct('project_id');
+
+    // Fetch projects where the user is assigned to tasks
+    const assignedProjects = await Project.find({ _id: { $in: assignedTaskProjects } });
+
+    // Combine owned projects and assigned projects, ensuring no duplicates
+    const allProjects = [...ownedProjects, ...assignedProjects].reduce((acc, project) => {
+      if (!acc.some(p => p._id.toString() === project._id.toString())) {
+        acc.push(project);
+      }
+      return acc;
+    }, []);
+
+    console.log('Retrieved projects:', allProjects); // Log the retrieved projects
+
+    res.status(200).json(allProjects);
   } catch (error) {
     console.error('Error retrieving projects:', error.message);
     res.status(500).json({ message: "Error retrieving projects", error: error.message });
@@ -107,6 +123,28 @@ router.put("/:id", authMiddleware, async (req, res) => {
     res.status(200).json(updatedProject);
   } catch (error) {
     res.status(500).json({ message: "Error updating project", error: error.message });
+  }
+});
+
+// Delete a project by ID
+router.delete("/:id", authMiddleware, async (req, res) => {
+  try {
+    const projectId = req.params.id;
+
+    // Find and delete the project
+    const deletedProject = await Project.findOneAndDelete({
+      _id: projectId,
+      user_id: req.user._id, // Ensure the user is the owner of the project
+    });
+
+    if (!deletedProject) {
+      return res.status(404).json({ message: "Project not found or you do not have permission to delete it" });
+    }
+
+    res.status(200).json({ message: "Project deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting project:", error.message);
+    res.status(500).json({ message: "Error deleting project", error: error.message });
   }
 });
 

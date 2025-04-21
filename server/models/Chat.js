@@ -20,6 +20,10 @@ const chatSchema = new Schema({
     type: Date,
     default: Date.now,
   },
+  isRead: {
+    type: Boolean,
+    default: false, // New messages are unread by default
+  },
 });
 
 module.exports = mongoose.model("Chat", chatSchema);

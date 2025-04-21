@@ -88,6 +88,38 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Handle marking messages as read when a chat is opened
+  socket.on("markMessagesAsRead", async ({ userId, senderId }) => {
+    try {
+      console.log(`Marking messages as read for user: ${userId} from sender: ${senderId}`); // Debugging log
+
+      // Update messages in the database
+      const result = await Chat.updateMany(
+        { receiverId: userId, senderId, isRead: false },
+        { $set: { isRead: true } }
+      );
+
+      console.log(`Marked ${result.modifiedCount} messages as read for user: ${userId} from sender: ${senderId}`); // Debugging log
+
+      // Notify the user about updated unread message counts
+      const unreadCounts = await Chat.aggregate([
+        { $match: { receiverId: new mongoose.Types.ObjectId(userId), isRead: false } },
+        { $group: { _id: "$senderId", count: { $sum: 1 } } },
+      ]);
+      
+      const mappedCounts = unreadCounts.map((item) => ({
+        senderId: item._id.toString(),
+        count: item.count || 0
+      }));
+      
+      console.log("Mapped unread message counts:", mappedCounts); // Debug log
+      socket.emit("unreadMessageCounts", mappedCounts);
+      
+    } catch (error) {
+      console.error("Error marking messages as read for user:", userId, error);
+    }
+  });
+
   // Handle user disconnection
   socket.on("disconnect", () => {
     console.log("A user disconnected:", socket.id);

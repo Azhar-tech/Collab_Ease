@@ -19,6 +19,7 @@ const Dashboard = () => {
   const [userId, setUserId] = useState(null); // State for user ID
   const [userEmail, setUserEmail] = useState(null); // State for user email
   const [isSettingsOpen, setIsSettingsOpen] = useState(false); // State for settings dropdown
+  const [loggedInUserName, setLoggedInUserName] = useState(""); // State for logged-in user's name
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -89,6 +90,13 @@ const Dashboard = () => {
       checkAssignedTasks();
     }
   }, [userEmail, navigate]);
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user")); // Fetch user from localStorage
+    if (user) {
+      setLoggedInUserName(user.name); // Set the logged-in user's name
+    }
+  }, []);
 
   const handleProjectCreated = (newProject) => {
     setProjects([...projects, newProject]);
@@ -163,10 +171,13 @@ const Dashboard = () => {
             className="bg-gray-300 text-blue-500 px-4 py-2 rounded-lg hover:bg-gray-400 transition-all"
             onClick={() => setIsSettingsOpen(!isSettingsOpen)}
           >
-            <FontAwesomeIcon icon={faCog} />
+            {loggedInUserName} {/* Display logged-in user's name */}
           </button>
           {isSettingsOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg">
+              <p className="block w-full text-left px-4 py-2 text-gray-700">
+                Logged in as: <strong>{loggedInUserName}</strong>
+              </p>
               <button
                 className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
                 onClick={handleLogout}
@@ -186,13 +197,7 @@ const Dashboard = () => {
           <FontAwesomeIcon icon={faPlus} className="mr-2" />
           Create New Project
         </button>
-        <button
-          className="bg-orange-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-orange-400 flex items-center"
-          onClick={() => setIsTeamMemberModalOpen(true)}
-        >
-          <FontAwesomeIcon icon={faPlus} className="mr-2" />
-          Add Team Member
-        </button>
+        
       </div>
 
       <div className="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
@@ -249,48 +254,7 @@ const Dashboard = () => {
         </table>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-md mt-6 overflow-x-auto">
-        <h2 className="text-2xl font-semibold mb-4 flex items-center">
-          <FontAwesomeIcon icon={faUsers} className="mr-2 " />
-          Team Members
-        </h2>
-        <table className="min-w-full bg-white border-collapse border border-gray-300">
-          <thead>
-            <tr className="bg-blue-950 text-white">
-              <th className="py-2 px-4 border">Name</th>
-              <th className="py-2 px-4 border">Email</th>
-              <th className="py-2 px-4 border">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {teamMembers.map((member) => (
-              <tr
-                key={member._id}
-                className="text-center hover:bg-yellow-100 odd:bg-white even:bg-gray-100"
-              >
-                <td className="px-4 py-2">{member.name}</td>
-                <td className="px-4 py-2">{member.email}</td>
-                <td className="px-4 py-2 flex justify-center">
-                  <button
-                    className="bg-blue-950 text-white px-2 py-1 rounded-lg mr-2 hover:bg-yellow-500 flex items-center"
-                    onClick={() => handleEditMemberClick(member)}
-                  >
-                    <FontAwesomeIcon icon={faEdit} className="mr-1" />
-                    Edit
-                  </button>
-                  <button
-                    className="bg-blue-950 text-white px-2 py-1 rounded-lg hover:bg-red-400 flex items-center"
-                    onClick={() => handleDeleteMemberClick(member._id)}
-                  >
-                    <FontAwesomeIcon icon={faTrash} className="mr-1" />
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      
       <Modal isOpen={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)}>
         <h2 className="text-2xl font-semibold mb-4">Create Project</h2>
         <ProjectForm

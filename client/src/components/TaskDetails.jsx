@@ -102,6 +102,26 @@ const handleMoveToInProgress = async () => {
   }
 };
 
+const handleDeleteTeamMember = async (memberId) => {
+  try {
+    const token = localStorage.getItem("token"); // Ensure token is included
+    if (!token) {
+      navigate('/login'); // Redirect to login if no token is found
+      return;
+    }
+
+    await axios.delete(`/team-members/${memberId}`, {
+      headers: { Authorization: `Bearer ${token}` }, // Add Authorization header
+    });
+
+    // Refresh task details or update the UI to reflect the deletion
+    fetchTaskDetails();
+    alert("Team member deleted successfully.");
+  } catch (error) {
+    console.error('Error deleting team member:', error);
+    alert('Failed to delete team member. Please try again.');
+  }
+};
 
   const handleDeleteTask = async () => {
     try {
@@ -202,6 +222,31 @@ const handleMoveToInProgress = async () => {
             </button>
           </div>
         </div>
+
+        {/* Team Members Section */}
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Team Members</h2>
+          {task.teamMembers && task.teamMembers.length > 0 ? (
+            <ul className="space-y-2">
+              {task.teamMembers.map((member) => (
+                <li
+                  key={member._id}
+                  className="bg-gray-50 p-3 rounded-lg border border-gray-300 flex justify-between items-center"
+                >
+                  <span>{member.name} ({member.email})</span>
+                  <button
+                    onClick={() => handleDeleteTeamMember(member._id)}
+                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+                  >
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="italic text-gray-500">No team members assigned yet.</p>
+          )}
+        </div>
   
         {/* Action Buttons */}
         <div className="flex flex-wrap justify-end gap-4">
@@ -246,7 +291,7 @@ const handleMoveToInProgress = async () => {
 
 {task.status === 'review' &&  (
   <button
-    onClick={() => handleStatusChange('complete')}
+    onClick={() => handleStatusChange('completed')}
     className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
   >
     Move to Complete

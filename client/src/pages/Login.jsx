@@ -21,7 +21,7 @@ const Login = () => {
   
       console.log("Login response:", response.data);
   
-      const { token, projectIds, user } = response.data;
+      const { token, projectIds, user, assignedTasks } = response.data; // Include assignedTasks in the response
   
       // Check if user data is received
       if (!user) {
@@ -29,12 +29,14 @@ const Login = () => {
       }
   
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user)); // store user
+      localStorage.setItem('user', JSON.stringify(user)); // Store user
   
-      if (projectIds.length > 0) {
-        navigate(`/projects/${projectIds[0]}`);
+      if (assignedTasks && assignedTasks.length > 0) {
+        navigate('/dashboard'); // Navigate to the dashboard if tasks are assigned
+      } else if (projectIds.length > 0) {
+        navigate(`/projects/${projectIds[0]}`); // Navigate to the first project if no tasks are assigned
       } else {
-        navigate('/dashboard');
+        navigate('/dashboard'); // Default to the dashboard
       }
     } catch (err) {
       console.error("Login error:", err);

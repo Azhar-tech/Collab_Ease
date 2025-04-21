@@ -9,7 +9,7 @@ const TaskSchema = new Schema({
   
   status: {
     type: String,
-    enum: ["pending", "in-progress", "review", "completed"], // Add 'in-progress' to the enum
+    enum: ["pending", "in-progress", "review", "completed"], // Add 'complete' as a valid status
     default: "pending",
   },
 
