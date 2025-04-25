@@ -38,6 +38,7 @@ const ProjectDetails = ({ userId }) => {
   const [unreadMessages, setUnreadMessages] = useState([]); // State to store unread messages
   const [loggedInUserName, setLoggedInUserName] = useState(""); // State to store the logged-in user's name
   const [showChat, setShowChat] = useState(false); // State to toggle between team list and chat
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false); // State for settings dropdown
 
   const getToken = () => localStorage.getItem("token");
   
@@ -563,6 +564,10 @@ const handleDeleteTeamMember = async (memberId) => {
   }
 };
 
+const handleLogout = () => {
+  // Perform logout logic here, e.g., clearing tokens, etc.
+  navigate('/'); // Redirect to home page after logout
+};
 
   if (error) return <div className="text-red-500">{error}</div>;
   if (!project) return <div>Loading...</div>;
@@ -576,6 +581,7 @@ const handleDeleteTeamMember = async (memberId) => {
           <img src={logo} alt="Logo" className="h-16 object-contain" /> {/* Adjust height as needed */}
         </div>
         <p className="text-sm text-gray-500 mb-4">Welcome, {loggedInUserName}</p> {/* Display logged-in user's name */}
+        
         <button
           className={`w-full text-left px-4 py-2 mb-2 rounded-lg ${
             activeSection === "details" ? "bg-blue-500 text-white" : "bg-gray-200"
@@ -667,7 +673,30 @@ const handleDeleteTeamMember = async (memberId) => {
                 </button>
               )}
 
-              <h1 className="text-4xl font-bold text-center">Project Details</h1>
+              <div className="flex justify-between items-center">
+                <h1 className="text-4xl font-bold text-center flex-1">Project Details</h1>
+                <div className="relative">
+                  <button
+                    className="bg-gray-300 text-blue-500 px-4 py-2 rounded-lg hover:bg-gray-400 transition-all"
+                    onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                  >
+                    {loggedInUserName} {/* Display logged-in user's name */}
+                  </button>
+                  {isSettingsOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg">
+                      <p className="block w-full text-left px-4 py-2 text-gray-700">
+                        Logged in as: <strong>{loggedInUserName}</strong>
+                      </p>
+                      <button
+                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={handleLogout}
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow-md mb-6">

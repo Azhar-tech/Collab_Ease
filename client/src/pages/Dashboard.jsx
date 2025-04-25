@@ -150,9 +150,11 @@ const Dashboard = () => {
   };
 
   const handleLogout = () => {
-    // Perform logout logic here, e.g., clearing tokens, etc.
-    navigate('/'); // Redirect to home page after logout
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
   };
+  
 
   return (
     <div className="min-h-screen bg-yellow-50">
