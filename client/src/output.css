@@ -648,6 +648,10 @@ video {
   top: 0.75rem;
 }
 
+.left-2 {
+  left: 0.5rem;
+}
+
 .z-20 {
   z-index: 20;
 }
@@ -720,6 +724,10 @@ video {
 
 .mt-6 {
   margin-top: 1.5rem;
+}
+
+.ml-8 {
+  margin-left: 2rem;
 }
 
 .block {
@@ -912,10 +920,6 @@ video {
   flex-direction: column;
 }
 
-.flex-col-reverse {
-  flex-direction: column-reverse;
-}
-
 .flex-wrap {
   flex-wrap: wrap;
 }
@@ -950,10 +954,6 @@ video {
 
 .gap-4 {
   gap: 1rem;
-}
-
-.gap-6 {
-  gap: 1.5rem;
 }
 
 .space-y-2 > :not([hidden]) ~ :not([hidden]) {
@@ -1210,6 +1210,10 @@ video {
 
 .p-8 {
   padding: 2rem;
+}
+
+.p-1 {
+  padding: 0.25rem;
 }
 
 .px-10 {

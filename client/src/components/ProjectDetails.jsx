@@ -219,8 +219,8 @@ const ProjectDetails = ({ userId }) => {
       console.log("Received message via WebSocket:", message);
   
       const user = JSON.parse(localStorage.getItem("user"));
-      const userId = user?._id;
-      const chatMemberUserId = selectedChatMember?.userRefId;
+      const userId = user?._id; // Ensure this matches the logged-in user's ID in your database
+      const chatMemberUserId = selectedChatMember?.userRefId; // Ensure this matches the team member's ID in your database
   
       const isRelevant =
         (message.senderId === userId && message.receiverId === chatMemberUserId) ||
@@ -254,7 +254,7 @@ const ProjectDetails = ({ userId }) => {
   const fetchMessages = async (chatMemberId) => {
     try {
       const user = JSON.parse(localStorage.getItem("user"));
-      const userId = user?._id;
+      const userId = user?._id; // Ensure this matches the logged-in user's ID in your database
   
       if (!userId || !chatMemberId) {
         console.error("Missing userId or chatMemberId", { userId, chatMemberId });
@@ -264,7 +264,7 @@ const ProjectDetails = ({ userId }) => {
       console.log("Fetching messages with params:", { userId, chatMemberId }); // Debugging log
   
       const response = await axios.get("http://localhost:8001/api/chats", {
-        params: { userId, chatMemberId },
+        params: { userId, chatMemberId }, // Ensure these IDs match your backend's expected fields
       });
   
       console.log("Fetched messages:", response.data); // Debugging log
@@ -498,6 +498,7 @@ useEffect(() => {
 }, []);
 
 const handleOpenChat = async (member) => {
+  console.log("Opening chat with member:", member); // Debugging log
   setSelectedChatMember(member);
   setShowChat(true); // Show the chat when a team member is clicked
 
@@ -519,12 +520,10 @@ const handleOpenChat = async (member) => {
       }
 
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await axios.put("http://localhost:8001/api/chats/mark-read", {
+      await axios.put("http://localhost:8001/api/chats/mark-read", {
         userId,
         senderId: member.userRefId,
       }, config);
-
-      console.log(`Messages from ${member.userRefId} marked as read.`, response.data);
 
       // Fetch updated unread messages to ensure the badge is removed
       const unreadResponse = await axios.get("http://localhost:8001/api/chats/unread", {
@@ -541,6 +540,27 @@ const handleOpenChat = async (member) => {
 const handleBackToTeamList = () => {
   setShowChat(false); // Go back to the team members list
   setSelectedChatMember(null); // Clear the selected chat member
+};
+
+const handleDeleteTeamMember = async (memberId) => {
+  try {
+    const token = getToken();
+    if (!token) {
+      alert("Your session has expired. Please log in again.");
+      navigate("/login");
+      return;
+    }
+
+    await axios.delete(`/team-members/${memberId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    setTeamMembers((prev) => prev.filter((member) => member._id !== memberId)); // Update UI after deletion
+    alert("Team member deleted successfully.");
+  } catch (error) {
+    console.error("Error deleting team member:", error.response?.data || error.message);
+    alert(`Failed to delete team member: ${error.response?.data?.message || error.message}`);
+  }
 };
 
 
@@ -579,7 +599,6 @@ const handleBackToTeamList = () => {
             <h3 className="text-lg font-semibold mb-4">Team Members</h3>
             <ul className="space-y-2">
               {teamMembers.map((member) => {
-                // Calculate the number of unread messages for this member
                 const unreadCount = unreadMessages.reduce((count, msg) => {
                   const senderId = msg.senderId ? msg.senderId.toString() : msg._id?.toString(); // Fallback to _id if senderId is missing
                   const userRefId = member.userRefId ? member.userRefId.toString() : undefined; // Ensure userRefId is a string
@@ -592,14 +611,26 @@ const handleBackToTeamList = () => {
                     className={`relative p-2 bg-white rounded-lg shadow-sm flex items-center gap-2 cursor-pointer ${
                       selectedChatMember?._id === member._id ? "bg-blue-100" : ""
                     }`}
-                    onClick={() => handleOpenChat(member)}
+                    onClick={() => handleOpenChat(member)} // Ensure this explicitly calls handleOpenChat
                   >
-                    <div className="flex flex-col">
+                    {isProjectCreator && ( // Show delete icon only if the user is the project creator
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent triggering chat when clicking delete
+                          handleDeleteTeamMember(member._id);
+                        }}
+                        className="absolute left-2  text-black p-1 rounded-full hover:bg-red-600"
+                        title="Delete Team Member"
+                      >
+                        <FontAwesomeIcon icon={faTrash} size="sm" />
+                      </button>
+                    )}
+                    <div className="flex flex-col ml-8"> {/* Add margin to avoid overlap with the delete icon */}
                       <span className="font-medium">{member.name}</span>
                       <span className="text-sm text-gray-500">{member.email}</span>
                     </div>
                     {unreadCount > 0 && (
-                      <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                      <span className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
                         {unreadCount}
                       </span>
                     )}
@@ -869,15 +900,7 @@ const handleBackToTeamList = () => {
                       ))}
                     </select>
                   </div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-2">Comment</label>
-                    <textarea
-                      className="w-full border rounded px-3 py-2"
-                      rows="3"
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                    ></textarea>
-                  </div>
+                 
                   <div className="flex justify-end">
                     <button
                       className="bg-gray-300 text-black px-4 py-2 rounded-lg mr-2"

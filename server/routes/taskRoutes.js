@@ -265,7 +265,10 @@ if (task.status === 'review' && status === 'in-progress') {
 
     // Update the task in the database
     Object.assign(task, updateData); // Merge the updateData into the task
-    const updatedTask = await task.save(); // Save the task with the new comment and updates
+    const updatedTask = await task.save();
+    // // Update fields if provided
+
+ // Save the task with the new comment and updates
 
     // Send email notification if the task is assigned to a new user
     if (assigned_to) {
@@ -301,6 +304,25 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Invalid task ID format" });
     }
 
+    // Fetch the task to find the associated project
+    const task = await Task.findById(taskId).populate('project_id'); // Populate the project_id field to get project details
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    // Fetch the project to check if the logged-in user is the creator
+    const project = await Project.findById(task.project_id);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // Authorization: Check if the logged-in user is the project creator
+    if (project.user_id.toString() !== req.user._id.toString()) {
+      console.log("Authorization failed: User is not the project creator.");
+      return res.status(403).json({ message: "Only the project creator can delete this task." });
+    }
+
+    // Delete the task
     const deletedTask = await Task.findByIdAndDelete(taskId);
     if (!deletedTask) {
       return res.status(404).json({ message: "Task not found" });
@@ -313,22 +335,39 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   }
 });
 
+
 // Add a comment to a task
 router.post('/:id/comments', authMiddleware, async (req, res) => {
   try {
     const { comment } = req.body;
-    const task = await Task.findById(req.params.id);
+    console.log("Received comment:", comment); // Log the received comment
+    console.log("Authenticated user:", req.user); // Log the authenticated user details
 
+    const task = await Task.findById(req.params.id);
     if (!task) {
+      console.error("Task not found for ID:", req.params.id); // Log if the task is not found
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    task.comments.push({ text: comment, author: req.user.name });
-    await task.save();
+    console.log("Task found:", task); // Log the task details
 
-    res.status(200).json(task);
+    // Add the comment with user details
+    task.comments.push({
+      text: comment,
+      created_at: new Date(),
+      user: {
+        id: req.user._id, // Ensure user ID is included as ObjectId
+        name: req.user.name, // Ensure user name is included
+      },
+    });
+
+    await task.save();
+    console.log("Comment added successfully:", task.comments[task.comments.length - 1]); // Log the added comment
+
+    res.status(200).json(task.comments[task.comments.length - 1]); // Return the newly added comment
   } catch (error) {
-    console.error('Error adding comment:', error.message);
+    console.error('Error adding comment:', error.message); // Log the error message
+    console.error('Error stack trace:', error.stack); // Log the stack trace for debugging
     res.status(500).json({ message: 'Error adding comment', error: error.message });
   }
 });

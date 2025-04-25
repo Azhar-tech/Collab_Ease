@@ -33,21 +33,26 @@ const TaskDetails = ({ userId }) => {
   const handleAddComment = async () => {
     try {
       const token = localStorage.getItem("token"); // Ensure token is included
-      if (!token) {
-        navigate('/login'); // Redirect to login if no token is found
+      const user = JSON.parse(localStorage.getItem("user")); // Get logged-in user info
+      if (!token || !user) {
+        navigate('/login'); // Redirect to login if no token or user info is found
         return;
       }
 
       const { data } = await axios.post(
         `/tasks/${taskId}/comments`,
-        { comment: newComment },
+        { comment: newComment }, // Backend already associates the comment with the logged-in user
         { headers: { Authorization: `Bearer ${token}` } } // Add Authorization header
       );
 
-      setTask(data); // Update task with the updated data from the backend
+      // Update task comments with the new comment
+      setTask((prevTask) => ({
+        ...prevTask,
+        comments: [...prevTask.comments, data], // Use the comment returned from the server
+      }));
       setNewComment(''); // Clear the comment input
     } catch (error) {
-      console.error('Error adding comment:', error);
+      console.error('Error adding comment:', error.response?.data || error.message);
     }
   };
 
@@ -123,14 +128,28 @@ const handleDeleteTeamMember = async (memberId) => {
   }
 };
 
-  const handleDeleteTask = async () => {
-    try {
-      await axios.delete(`/tasks/${taskId}`);
-      navigate(-1); // Go back to the previous page
-    } catch (error) {
-      console.error('Error deleting task:', error);
+const handleDeleteTask = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user")); // Get logged-in user info
+    if (!token || !user) {
+      navigate('/login'); // Redirect to login if no token or user info is found
+      return;
     }
-  };
+
+    if (!task.isProjectCreator) { // Check if the user is the project creator
+      alert("Only the project creator can delete this task.");
+      return;
+    }
+
+    await axios.delete(`/tasks/${taskId}`, {
+      headers: { Authorization: `Bearer ${token}` }, // Add Authorization header
+    });
+    navigate(-1); // Go back to the previous page
+  } catch (error) {
+    console.error('Error deleting task:', error);
+  }
+};
 
   useEffect(() => {
     fetchTaskDetails();
@@ -164,7 +183,13 @@ const handleDeleteTeamMember = async (memberId) => {
           <ul className="space-y-3">
             {task.comments.map((comment, index) => (
               <li key={index} className="bg-purple-50 p-4 rounded-lg shadow-sm border border-purple-200">
-                <strong className="text-purple-700">{comment.author}:</strong> {comment.text}
+                <strong className="text-purple-700">
+                  {comment.user?.name || "Unknown"}: {/* Display the user's name */}
+                </strong>{" "}
+                {comment.text}
+                <div className="text-sm text-gray-500 mt-1">
+                  {new Date(comment.created_at).toLocaleString()} {/* Display formatted timestamp */}
+                </div>
               </li>
             ))}
           </ul>
@@ -223,30 +248,7 @@ const handleDeleteTeamMember = async (memberId) => {
           </div>
         </div>
 
-        {/* Team Members Section */}
-        <div>
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Team Members</h2>
-          {task.teamMembers && task.teamMembers.length > 0 ? (
-            <ul className="space-y-2">
-              {task.teamMembers.map((member) => (
-                <li
-                  key={member._id}
-                  className="bg-gray-50 p-3 rounded-lg border border-gray-300 flex justify-between items-center"
-                >
-                  <span>{member.name} ({member.email})</span>
-                  <button
-                    onClick={() => handleDeleteTeamMember(member._id)}
-                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
-                  >
-                    Delete
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="italic text-gray-500">No team members assigned yet.</p>
-          )}
-        </div>
+      
   
         {/* Action Buttons */}
         <div className="flex flex-wrap justify-end gap-4">

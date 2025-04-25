@@ -6,17 +6,17 @@ const TaskSchema = new Schema({
   task_description: { type: String, required: true },
   task_start_date: { type: Date, required: true },
   task_end_date: { type: Date, required: true },
-  
+
   status: {
     type: String,
-    enum: ["pending", "in-progress", "review", "completed"], // Add 'complete' as a valid status
+    enum: ["pending", "in-progress", "review", "completed"],
     default: "pending",
   },
 
   assigned_to: {
     name: { type: String },
     email: { type: String },
-  }, // Filled when a task is assigned
+  },
 
   project_id: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
 
@@ -24,14 +24,19 @@ const TaskSchema = new Schema({
     {
       text: { type: String, required: true },
       created_at: { type: Date, default: Date.now },
+      user: {
+        id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Reference to User model
+        name: { type: String, required: true }, // Store the user's name
+      },
     },
   ],
+  
 
-  files: [{ type: String }], // Change 'file' to 'files' and make it an array
+  files: [{ type: String }],
 
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
-  comment: { type: String }, // Ensure comment field is defined
+
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 });
 
