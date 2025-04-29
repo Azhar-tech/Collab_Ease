@@ -583,21 +583,23 @@ const handleLogout = () => {
         <p className="text-sm text-gray-500 mb-4">Welcome, {loggedInUserName}</p> {/* Display logged-in user's name */}
         
         <button
-          className={`w-full text-left px-4 py-2 mb-2 rounded-lg ${
-            activeSection === "details" ? "bg-blue-500 text-white" : "bg-gray-200"
-          }`}
-          onClick={() => setActiveSection("details")}
-        >
-          Project Details
-        </button>
-        <button
-          className={`w-full text-left px-4 py-2 rounded-lg ${
-            activeSection === "teams" ? "bg-blue-500 text-white" : "bg-gray-200"
-          }`}
-          onClick={() => setActiveSection("teams")}
-        >
-          Teams
-        </button>
+  className={`w-full text-left px-2 py-1 md:px-4 md:py-2 mb-2 rounded-lg text-sm md:text-base ${
+    activeSection === "details" ? "bg-blue-500 text-white" : "bg-gray-200"
+  }`}
+  onClick={() => setActiveSection("details")}
+>
+  Project Details
+</button>
+
+<button
+  className={`w-full text-left px-2 py-1 md:px-4 md:py-2 rounded-lg text-sm md:text-base ${
+    activeSection === "teams" ? "bg-blue-500 text-white" : "bg-gray-200"
+  }`}
+  onClick={() => setActiveSection("teams")}
+>
+  Teams
+</button>
+
 
         {/* Team Members List */}
         {activeSection === "teams" && (
@@ -646,58 +648,65 @@ const handleLogout = () => {
             </ul>
             {/* Add Member Button */}
             <div className="flex justify-end mt-4">
-              <button
-                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
-                onClick={() => setIsAddMemberModalOpen(true)}
-              >
-                Add Team Member
-              </button>
+            <button
+  className="bg-green-500 text-white text-sm md:text-base px-3 py-1 md:px-4 md:py-2 rounded-lg hover:bg-green-600 transition-all"
+  onClick={() => setIsAddMemberModalOpen(true)}
+>
+  Add Team Member
+</button>
+
             </div>
           </div>
         )}
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-6 overflow-x-auto">
         {activeSection === "details" && (
           <>
             {/* Project Details Section */}
             <div className="relative mb-6">
-              {(isProjectCreator || !hasAssignedActiveTask) && (
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="absolute left-0 text-blue-500 flex items-center gap-2"
-                >
-                  <FontAwesomeIcon icon={faArrowLeft} />
-                  <span className="sr-only">Back to Dashboard</span>
-                </button>
-              )}
+  {/* Back Button */}
+  {(isProjectCreator || !hasAssignedActiveTask) && (
+    <button
+      onClick={() => navigate('/dashboard')}
+      className="absolute top-0 left-0 text-blue-500 flex items-center  text-sm md:text-base"
+    >
+      <FontAwesomeIcon icon={faArrowLeft} />
+      <span className="sr-only">Back to Dashboard</span>
+    </button>
+  )}
 
-              <div className="flex justify-between items-center">
-                <h1 className="text-4xl font-bold text-center flex-1">Project Details</h1>
-                <div className="relative">
-                  <button
-                    className="bg-gray-300 text-blue-500 px-4 py-2 rounded-lg hover:bg-gray-400 transition-all"
-                    onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                  >
-                    {loggedInUserName} {/* Display logged-in user's name */}
-                  </button>
-                  {isSettingsOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg">
-                      <p className="block w-full text-left px-4 py-2 text-gray-700">
-                        Logged in as: <strong>{loggedInUserName}</strong>
-                      </p>
-                      <button
-                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={handleLogout}
-                      >
-                        Logout
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+  {/* Settings/Profile Button at Top Right */}
+  <div className="absolute top-0 right-0 ">
+    <button
+      className="bg-gray-300 text-blue-500 text-sm md:text-base px-3 py-1 md:px-4 md:py-2 rounded-lg hover:bg-gray-400 transition-all"
+      onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+    >
+      {loggedInUserName}
+    </button>
+
+    {isSettingsOpen && (
+      <div className=" mt-2   bg-white border rounded-lg shadow-lg">
+        <p className="block w-full text-left px-4 py-2 text-gray-700 text-sm">
+          Logged in as: <strong>{loggedInUserName}</strong>
+        </p>
+        <button
+          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 text-sm"
+          onClick={handleLogout}
+        >
+          Logout
+        </button>
+      </div>
+    )}
+  </div>
+
+  {/* Heading in center */}
+  <h1 className="text-lg md:text-4xl font-bold text-center ">
+    Project Details
+  </h1>
+</div>
+
 
             <div className="bg-white p-6 rounded-lg shadow-md mb-6">
               <div className="flex gap-2 items-center mb-4">
@@ -731,7 +740,7 @@ const handleLogout = () => {
                   Pending
                 </h2>
                 <div className="">
-                  <table className="table-auto w-full border-collapse border border-gray-300 text-sm md:text-base">
+                  <table className="table-auto over w-full border-collapse border border-gray-300 text-sm md:text-base">
                     <thead>
                       <tr className="bg-gray-600 text-white text-center">
                         <th className="border border-gray-300 px-2 md:px-4 py-2">Task Name</th>
@@ -863,7 +872,7 @@ const handleLogout = () => {
                   Completed
                 </h2>
                 <div className="overflow-x-auto">
-                  <table className="table-auto w-full border-collapse border border-gray-300 text-sm md:text-base">
+                  <table className="table-auto min-w-[600px] md w-full border-collapse border border-gray-300 text-sm md:text-base">
                     <thead className="bg-gray-700 text-white">
                       <tr>
                         <th className="border border-gray-300 px-2 md:px-4 py-2">Task Name</th>

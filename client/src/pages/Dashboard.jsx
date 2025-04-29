@@ -158,38 +158,70 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-yellow-50">
-      <div className="mb-6 bg-gray-200  p-5 flex justify-between items-center shadow-lg">
-         <img
-                    src={logo} // Updated src to point to the logo image
-                    alt="Logo"
-                    className="h-auto max-h-20  object-contain" // Adjust height and width dynamically
-                  />
-        <h1 className="text-3xl font-bold text-blue-950 flex items-center">
-          <FontAwesomeIcon icon={faProjectDiagram} className="mr-3 text-gray-600" />
-          Project Management Dashboard
-        </h1>
-        <div className="relative">
-          <button
-            className="bg-gray-300 text-blue-500 px-4 py-2 rounded-lg hover:bg-gray-400 transition-all"
-            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-          >
-            {loggedInUserName} {/* Display logged-in user's name */}
-          </button>
-          {isSettingsOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg">
-              <p className="block w-full text-left px-4 py-2 text-gray-700">
-                Logged in as: <strong>{loggedInUserName}</strong>
-              </p>
-              <button
-                className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                onClick={handleLogout}
-              >
-                Logout
-              </button>
-            </div>
-          )}
-        </div>
+      <div className="mb-6 bg-gray-200 p-5 shadow-lg">
+  <div className="flex flex-col md:flex-row justify-between items-center w-full">
+    {/* Logo and Settings Button */}
+    <div className="flex items-center justify-between w-full md:w-auto">
+      <img
+        src={logo}
+        alt="Logo"
+        className="h-auto max-h-16 object-contain"
+      />
+      <div className="relative md:hidden">
+        <button
+          className="bg-gray-300 text-blue-500 text-sm px-4 py-2 rounded-lg hover:bg-gray-400 transition-all"
+          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+        >
+          {loggedInUserName}
+        </button>
+
+        {isSettingsOpen && (
+          <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg">
+            <p className="block w-full text-left px-4 py-2 text-gray-700">
+              Logged in as: <strong>{loggedInUserName}</strong>
+            </p>
+            <button
+              className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </div>
+        )}
       </div>
+    </div>
+
+    {/* Heading */}
+    <h1 className="text-xl md:text-3xl font-bold text-blue-950 text-center flex items-center mt-3 md:mt-0">
+      <FontAwesomeIcon icon={faProjectDiagram} className="mr-2 text-gray-600" />
+      Project Management Dashboard
+    </h1>
+
+    {/* Settings Button for Desktop */}
+    <div className="relative hidden md:block">
+      <button
+        className="bg-gray-300 text-blue-500 text-sm md:text-base px-4 py-2 rounded-lg hover:bg-gray-400 transition-all"
+        onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+      >
+        {loggedInUserName}
+      </button>
+
+      {isSettingsOpen && (
+        <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg">
+          <p className="block w-full text-left px-4 py-2 text-gray-700">
+            Logged in as: <strong>{loggedInUserName}</strong>
+          </p>
+          <button
+            className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
 
       <div className="flex justify-end mb-4">
         <button

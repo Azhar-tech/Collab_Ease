@@ -11,9 +11,9 @@ const Menu = () => {
         {/* Logo */}
         <div className="w-[20%] flex items-center">
           <img
-            src={logo} // Updated src to point to the logo image
+            src={logo}
             alt="Logo"
-            className="h-auto max-h-20 w-full w-auto object-contain" // Adjust height and width dynamically
+            className="h-auto max-h-20 w-full w-auto object-contain"
           />
         </div>
 
@@ -24,31 +24,46 @@ const Menu = () => {
           }`}
         >
           <li>
-            <Link to="/Home" className="relative group" href="#">
+            <Link to="/Home" className="relative group">
               Home
               <span className="absolute left-0 bottom-0 h-[2px] w-0 bg-blue-500 transition-all duration-300 ease-in-out group-hover:w-full"></span>
             </Link>
           </li>
-
           <li>
-            <Link to="/About" className="relative group" href="#">
+            <Link to="/About" className="relative group">
               About Us
               <span className="absolute left-0 bottom-0 h-[2px] w-0 bg-blue-500 transition-all duration-300 ease-in-out group-hover:w-full"></span>
             </Link>
           </li>
           <li>
-            <Link to="/Contact" className="relative group" href="#">
+            <Link to="/Contact" className="relative group">
               Contact
               <span className="absolute left-0 bottom-0 h-[2px] w-0 bg-blue-500 transition-all duration-300 ease-in-out group-hover:w-full"></span>
             </Link>
           </li>
+
+          {/* Login & Signup for mobile */}
+          <div className="flex flex-col gap-3 md:hidden w-[100px]">
+            <Link
+              to="/login"
+              className="bg-blue-400 text-white text-lg px-6 py-2 rounded-3xl text-center hover:bg-white hover:text-black transition-all"
+            >
+              Login
+            </Link>
+            <Link
+              to="/signup"
+              className="bg-blue-400 text-white text-lg px-6 py-2 rounded-3xl text-center hover:bg-white hover:text-black transition-all"
+            >
+              Signup
+            </Link>
+          </div>
         </div>
 
-        {/* Login Button */}
+        {/* Login & Signup for desktop */}
         <div className="hidden md:flex w-[20%] justify-center">
           <Link
             to="/login"
-            className="bg-blue-400 text-white text-xl md:text-2xl px-6 md:px-8 text-center py-1 rounded-3xl hover:bg-white hover:text-black  transition-all"
+            className="bg-blue-400 text-white text-xl md:text-2xl px-6 md:px-8 text-center py-1 rounded-3xl hover:bg-white hover:text-black transition-all"
           >
             Login
           </Link>
@@ -56,9 +71,9 @@ const Menu = () => {
         <div className="hidden md:flex w-[20%] justify-center">
           <Link
             to="/signup"
-            className="bg-blue-400 text-white text-xl md:text-2xl px-6 md:px-8 text-center py-1 rounded-3xl hover:bg-white hover:text-black  transition-all"
+            className="bg-blue-400 text-white text-xl md:text-2xl px-6 md:px-8 text-center py-1 rounded-3xl hover:bg-white hover:text-black transition-all"
           >
-            signup
+            Signup
           </Link>
         </div>
 
