@@ -160,6 +160,14 @@ const handleDeleteTask = async () => {
   return (
     <div className="p-6 bg-gradient-to-br from-purple-100 to-blue-100 min-h-screen">
       <div className="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-xl space-y-8">
+        {/* Back to Project Details Button */}
+        <button
+          onClick={() => navigate(-1)} // Navigate back to the previous page
+          className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-all mb-4"
+        >
+          Back to Project Details
+        </button>
+
         {/* Task Details Heading */}
         <div className="text-center">
           <h1 className="text-5xl font-extrabold text-blue-950 mb-4">Task Details</h1>

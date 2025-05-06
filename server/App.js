@@ -16,6 +16,8 @@ const dbConfig = require("./config/db");
 const path = require("path");
 const Chat = require("./models/Chat"); // Import the Chat model
 const TeamMember = require("./models/TeamMember"); // Import the TeamMember model
+const Contact = require("./models/Contact");
+const contactRoutes = require("./routes/contact"); // Ensure the correct path to the contact routes
 
 const app = express();
 const PORT = process.env.PORT || 8001;
@@ -35,6 +37,7 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/team-members", teamMemberRoutes);
 app.use("/", authRoutes);
 app.use("/api/chats", chatRoutes);
+app.use("/api/contact", contactRoutes); // Ensure this route is correctly registered
 
 // Create HTTP server and integrate Socket.IO
 const server = http.createServer(app);
